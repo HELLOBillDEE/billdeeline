@@ -6,7 +6,21 @@
 <meta name="theme-color" content="#1A56A0">
 <title>Billdee – AI Accounting Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" onerror="window._liffLoadFailed=true"></script>
+<script>
+// ── Defensive LIFF stub (ถ้า SDK โหลดไม่ได้ — เช่น เปิดนอก LINE) ──
+if (typeof liff === 'undefined') {
+  window.liff = {
+    init:              ()  => Promise.resolve(),
+    isLoggedIn:        ()  => false,
+    isInClient:        ()  => false,
+    getProfile:        ()  => Promise.resolve({userId:'demo_user',displayName:'Demo User',pictureUrl:''}),
+    login:             ()  => {},
+    sendMessages:      ()  => Promise.resolve(),
+    shareTargetPicker: ()  => Promise.resolve(),
+  }
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -510,6 +524,7 @@ const CONFIG = {
 let sbClient = null
 let state = {
   user: null,
+  lineUserId: 'demo_user',   // LINE User ID — ใช้แทน auth.uid()
   profile: null,
   docs: [],
   selectedType: '',
@@ -544,10 +559,10 @@ const CATEGORIES = [
 const MONTHS_TH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 
 // ════════════════════════════════════════════════════
-// STARTUP
+// STARTUP — ใช้ LINE User ID แทน Supabase Auth
 // ════════════════════════════════════════════════════
 async function init() {
-  // init Supabase
+  // init Supabase (ไม่ต้อง Auth — ใช้ LINE User ID เป็น key)
   if (CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
     sbClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY)
   }
@@ -563,21 +578,40 @@ async function init() {
     `ปีภาษี ${now.getFullYear()+543}`
 
   try {
+    // ถ้า LIFF SDK โหลดไม่ได้ (เปิดนอก LINE / network block) → demo mode
+    if (window._liffLoadFailed || typeof liff === 'undefined') {
+      throw new Error('LIFF SDK not available')
+    }
+
     await liff.init({ liffId: CONFIG.LIFF_ID })
+
     if (liff.isLoggedIn()) {
-      const profile = await liff.getProfile()
-      state.user = profile
-      updateUserUI(profile.displayName, profile.pictureUrl)
+      const lineProfile = await liff.getProfile()
+      state.lineUserId = lineProfile.userId
+      state.user = lineProfile
+      updateUserUI(lineProfile.displayName)
+      await upsertProfile(lineProfile)
       await loadFromSupabase()
+
+    } else if (liff.isInClient()) {
+      // อยู่ใน LINE แต่ยังไม่ login → ขอ permission
+      liff.login()
+      return // รอ redirect กลับมา
+
     } else {
-      state.user = {displayName:'Demo User', pictureUrl:''}
-      updateUserUI('Demo User')
+      // เปิดผ่านเบราว์เซอร์ปกติ → demo mode
+      state.lineUserId = 'demo_user'
+      state.user = {displayName:'Demo (เปิดใน LINE เพื่อใช้งานจริง)'}
+      updateUserUI('Demo')
       loadDemoData()
     }
+
   } catch(e) {
-    // demo mode
-    state.user = {displayName:'ร้านทดสอบ', pictureUrl:''}
-    updateUserUI('ร้านทดสอบ')
+    // demo mode — ทำงานได้ปกติแค่ไม่บันทึกจริง
+    console.info('Demo mode:', e.message)
+    state.lineUserId = 'demo_user'
+    state.user = {displayName:'ร้านทดสอบ (Demo)'}
+    updateUserUI('Demo')
     loadDemoData()
   }
 
@@ -585,21 +619,38 @@ async function init() {
 }
 
 // ════════════════════════════════════════════════════
-// SUPABASE OPERATIONS
+// SUPABASE OPERATIONS (ใช้ line_user_id แทน auth.uid)
 // ════════════════════════════════════════════════════
-async function loadFromSupabase() {
-  if (!sbClient) { loadDemoData(); return }
+
+// สร้าง/อัปเดต profile เมื่อ login ด้วย LINE
+async function upsertProfile(lineProfile) {
+  if (!sbClient || state.lineUserId === 'demo_user') return
   try {
-    // ดึงเอกสาร
-    const {data: docs, error} = await supabase
+    await sbClient.from('profiles').upsert({
+      line_user_id:  lineProfile.userId,
+      display_name:  lineProfile.displayName,
+      picture_url:   lineProfile.pictureUrl,
+      updated_at:    new Date().toISOString(),
+    }, { onConflict: 'line_user_id' })
+  } catch(e) {
+    console.warn('upsertProfile failed:', e)
+  }
+}
+
+async function loadFromSupabase() {
+  if (!sbClient || state.lineUserId === 'demo_user') { loadDemoData(); return }
+  try {
+    const {data: docs, error} = await sbClient
       .from('documents')
       .select('*')
+      .eq('line_user_id', state.lineUserId)    // ← filter ด้วย LINE User ID
       .order('created_at', {ascending: false})
-      .limit(50)
+      .limit(100)
 
     if (!error && docs) {
       state.docs = docs
     } else {
+      console.warn('loadFromSupabase error:', error)
       loadDemoData()
     }
   } catch(e) {
@@ -608,29 +659,38 @@ async function loadFromSupabase() {
 }
 
 async function saveToSupabase(doc) {
-  if (!sbClient) return null
+  if (!sbClient || state.lineUserId === 'demo_user') return null
   try {
     // อัปโหลดไฟล์ถ้ามี
-    let file_url = null
+    let file_url = null, file_name = null
     if (state.uploadedFile) {
       const ext = state.uploadedFile.name.split('.').pop()
-      const path = `${Date.now()}.${ext}`
-      const {data} = await sbClient.storage.from('documents').upload(path, state.uploadedFile)
-      if (data) {
-        const {data: urlData} = await sbClient.storage
-          .from('documents').createSignedUrl(path, 60 * 60 * 24 * 365)
-        file_url = urlData?.signedUrl || null
+      const path = `${state.lineUserId}/${Date.now()}.${ext}` // แยก folder ต่อ user
+      const {data: uploadData, error: uploadError} = await sbClient
+        .storage.from('documents').upload(path, state.uploadedFile)
+      if (!uploadError && uploadData) {
+        const {data: signedData} = await sbClient
+          .storage.from('documents').createSignedUrl(path, 60 * 60 * 24 * 365)
+        file_url  = signedData?.signedUrl || null
+        file_name = state.uploadedFile.name
       }
     }
 
-    const {data, error} = await supabase
+    const {data, error} = await sbClient
       .from('documents')
-      .insert([{...doc, file_url}])
+      .insert([{
+        ...doc,
+        line_user_id: state.lineUserId,   // ← ใช้ LINE User ID
+        file_url,
+        file_name,
+      }])
       .select()
       .single()
 
-    return error ? null : data
+    if (error) { console.warn('saveToSupabase error:', error); return null }
+    return data
   } catch(e) {
+    console.warn('saveToSupabase exception:', e)
     return null
   }
 }
