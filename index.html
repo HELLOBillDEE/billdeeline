@@ -26,6 +26,41 @@ body{font-family:'Kanit',sans-serif;background:var(--bg);color:var(--ink);min-he
 .screen{display:none;min-height:100vh;flex-direction:column;}.screen.active{display:flex;}
 
 /* LOADING */
+/* APPROVE BTN */
+.btn-approve{background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Kanit';font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;}
+.btn-approve:active{transform:scale(.95);}
+.doc-item.pending-item{border-left:3px solid var(--yellow);}
+
+/* VAT TOGGLE */
+.vat-toggle-row{display:flex;align-items:center;justify-content:space-between;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:var(--r-sm);padding:11px 14px;margin-bottom:8px;cursor:pointer;}
+.vat-toggle-label{font-size:.88rem;font-weight:600;color:#15803d;}
+.vat-result-row{display:flex;justify-content:space-between;font-size:.82rem;color:var(--gray);padding:6px 0;}
+.vat-result-row b{color:var(--ink);}
+
+/* TAX REPORT */
+.tax-section-title{font-size:.78rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;}
+.tax-compare-card{background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.tax-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.tax-box{border-radius:var(--r-sm);padding:14px;text-align:center;}
+.tax-box.buy{background:#EFF6FF;border:1.5px solid #BFDBFE;}
+.tax-box.sell{background:#F0FDF4;border:1.5px solid #BBF7D0;}
+.tax-box-label{font-size:.72rem;font-weight:700;margin-bottom:4px;}
+.tax-box-label.buy{color:#1d4ed8;}.tax-box-label.sell{color:#15803d;}
+.tax-box-value{font-size:1.2rem;font-weight:800;}
+.tax-box-value.buy{color:#1A56A0;}.tax-box-value.sell{color:var(--green);}
+.tax-net-box{background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:var(--r-sm);padding:14px;display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+.tax-net-label{font-size:.85rem;font-weight:700;color:#92400E;}
+.tax-net-value{font-size:1.15rem;font-weight:800;color:#92400E;}
+
+/* LOGIN SCREEN */
+#screen-login{background:var(--blue);align-items:center;justify-content:center;gap:16px;text-align:center;padding:40px 24px;}
+.login-logo{font-size:4rem;}
+.login-title{color:#fff;font-size:1.5rem;font-weight:700;}
+.login-sub{color:rgba(255,255,255,.8);font-size:.9rem;line-height:1.7;max-width:280px;}
+.btn-line-login{background:#06C755;color:#fff;border:none;border-radius:14px;padding:16px 32px;font-family:'Kanit';font-size:1.05rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;margin:0 auto;box-shadow:0 4px 16px rgba(6,199,85,.35);transition:.15s;}
+.btn-line-login:active{transform:scale(.97);}
+.login-note{color:rgba(255,255,255,.6);font-size:.78rem;margin-top:4px;}
+
 #screen-loading{background:var(--blue);align-items:center;justify-content:center;gap:12px;text-align:center;}
 .load-logo{font-size:3rem;animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
@@ -230,6 +265,305 @@ body{font-family:'Kanit',sans-serif;background:var(--bg);color:var(--ink);min-he
 .overlay-title{font-weight:700;font-size:1rem;}
 .overlay-sub{font-size:.82rem;color:var(--gray);}
 </style>
+<script>
+// ================================================================
+// Billdee · Plan Gating Module
+// ฝังใน app ด้วย <script> tag
+// ใช้: gate.can('feature') → true/false
+//      gate.check('feature') → ถ้าไม่ผ่าน แสดง modal อัปเกรด
+// ================================================================
+
+const PLANS = {
+  trial: {
+    label: 'Trial', icon: '⏳', color: '#64748B',
+    ocr_quota: 10,
+    doc_quota: 20,
+    features: [
+      'scan_receipt','store_pdf','basic_expense',
+    ],
+  },
+  basic: {
+    label: 'Basic', icon: '📁', color: '#1A56A0',
+    price_monthly: 99, price_annual: 79,
+    ocr_quota: 30,
+    doc_quota: 50,
+    features: [
+      'scan_receipt','store_pdf','basic_expense',
+      'ocr_read',            // OCR อ่านบิล
+      'deduction_wizard',    // ค่าลดหย่อน wizard
+      'tax_90_summary',      // สรุป ภ.ง.ด.90
+      'export_pdf',          // Export PDF
+    ],
+  },
+  smart: {
+    label: 'Smart', icon: '⚡', color: '#2563EB',
+    price_monthly: 299, price_annual: 239,
+    ocr_quota: 150,
+    doc_quota: 300,
+    features: [
+      // ทุกอย่างใน basic +
+      'scan_receipt','store_pdf','basic_expense',
+      'ocr_read','deduction_wizard','tax_90_summary','export_pdf',
+      'income_entry',        // บิลขาย / รายได้
+      'voucher_pdf',         // ใบสำคัญจ่าย/รับ PDF
+      'margin_view',         // ดู margin ซื้อ-ขาย
+      'daily_summary',       // สรุปรายวัน
+      'tax_94_reminder',     // เตือน ภ.ง.ด.94
+      'export_excel',        // Export Excel
+    ],
+  },
+  pro: {
+    label: 'Pro', icon: '🏢', color: '#16A34A',
+    price_monthly: 799, price_annual: 639,
+    ocr_quota: Infinity,
+    doc_quota: Infinity,
+    features: [
+      // ทุกอย่างใน smart +
+      'scan_receipt','store_pdf','basic_expense',
+      'ocr_read','deduction_wizard','tax_90_summary','export_pdf',
+      'income_entry','voucher_pdf','margin_view','daily_summary',
+      'tax_94_reminder','export_excel',
+      'tax_invoice_pdf',     // ใบกำกับภาษี VAT
+      'vat_report',          // VAT ซื้อ/ขาย ภ.พ.30
+      'pos_import',          // นำเข้า POS Excel
+      'approve_workflow',    // อนุมัติเอกสาร
+      'multi_user',          // หลาย user
+      'multi_branch',        // หลายสาขา
+      'ai_chat',             // AI Chat
+    ],
+  },
+  enterprise: {
+    label: 'Enterprise', icon: '🌐', color: '#7C3AED',
+    price_monthly: null, // custom
+    ocr_quota: Infinity,
+    doc_quota: Infinity,
+    features: ['*'], // ทุก feature
+  },
+}
+
+// คำอธิบาย feature สำหรับแสดงใน upgrade modal
+const FEATURE_LABELS = {
+  ocr_read:          { th: 'AI อ่านบิลอัตโนมัติ',    required: 'basic'  },
+  deduction_wizard:  { th: 'ค่าลดหย่อน Wizard',       required: 'basic'  },
+  tax_90_summary:    { th: 'สรุปยื่น ภ.ง.ด.90',       required: 'basic'  },
+  export_pdf:        { th: 'Export PDF',               required: 'basic'  },
+  income_entry:      { th: 'บิลขาย / รายได้',          required: 'smart'  },
+  voucher_pdf:       { th: 'ใบสำคัญจ่าย/รับ PDF',     required: 'smart'  },
+  margin_view:       { th: 'ดู Margin ซื้อ-ขาย',      required: 'smart'  },
+  daily_summary:     { th: 'สรุปรายวัน',              required: 'smart'  },
+  export_excel:      { th: 'Export Excel',             required: 'smart'  },
+  tax_invoice_pdf:   { th: 'ใบกำกับภาษี VAT PDF',    required: 'pro'    },
+  vat_report:        { th: 'รายงาน VAT ภ.พ.30',       required: 'pro'    },
+  pos_import:        { th: 'นำเข้ายอดขาย POS',        required: 'pro'    },
+  approve_workflow:  { th: 'อนุมัติเอกสาร (workflow)', required: 'pro'    },
+  multi_user:        { th: 'หลาย User / Role',          required: 'pro'    },
+  ai_chat:           { th: 'AI Chat ถามตอบบัญชี',      required: 'pro'    },
+}
+
+// ================================================================
+// GATE CLASS
+// ================================================================
+class BilldeePlanGate {
+  constructor() {
+    this._plan = 'trial'
+    this._ocrUsed = 0
+    this._docUsed = 0
+    this._modalEl = null
+    // inject modal หลัง DOM พร้อม (ไม่ใน constructor)
+  }
+
+  // ── Setters ─────────────────────────────────────────────────
+  setSubscription(sub) {
+    this._plan    = sub?.plan    || 'trial'
+    this._ocrUsed = sub?.ocr_used || 0
+    this._docUsed = sub?.docs_used || 0
+  }
+
+  // ── Checkers ─────────────────────────────────────────────────
+
+  // ตรวจว่า plan ปัจจุบันมี feature นี้ไหม (silent)
+  can(feature) {
+    const plan = PLANS[this._plan]
+    if (!plan) return false
+    if (plan.features.includes('*')) return true
+    return plan.features.includes(feature)
+  }
+
+  // ตรวจ OCR quota
+  canOCR() {
+    const plan = PLANS[this._plan]
+    if (!plan) return false
+    if (plan.ocr_quota === Infinity) return true
+    return this._ocrUsed < plan.ocr_quota
+  }
+
+  // ตรวจ doc quota
+  canAddDoc() {
+    const plan = PLANS[this._plan]
+    if (!plan) return false
+    if (plan.doc_quota === Infinity) return true
+    return this._docUsed < plan.doc_quota
+  }
+
+  // ตรวจแล้วถ้าไม่ผ่าน → แสดง modal (ใช้ใน event handlers)
+  check(feature, callback) {
+    if (this.can(feature)) {
+      if (callback) callback()
+      return true
+    }
+    this._showUpgradeModal(feature)
+    return false
+  }
+
+  // ตรวจ OCR แล้วแสดง modal ถ้าหมด quota
+  checkOCR(callback) {
+    if (this.canOCR()) {
+      if (callback) callback()
+      return true
+    }
+    const plan = PLANS[this._plan]
+    this._showQuotaModal('ocr', this._ocrUsed, plan?.ocr_quota)
+    return false
+  }
+
+  // OCR used เพิ่ม (เรียกหลัง OCR สำเร็จ)
+  incrementOCR() { this._ocrUsed++ }
+  incrementDoc() { this._docUsed++ }
+
+  // ── Quota info ─────────────────────────────────────────────────
+  getOCRInfo() {
+    const plan = PLANS[this._plan]
+    return {
+      used:  this._ocrUsed,
+      limit: plan?.ocr_quota || 0,
+      pct:   plan?.ocr_quota === Infinity ? 0 : Math.round(this._ocrUsed / plan.ocr_quota * 100),
+      isUnlimited: plan?.ocr_quota === Infinity,
+    }
+  }
+
+  getPlanInfo() { return PLANS[this._plan] || PLANS['trial'] }
+  getPlanName() { return this._plan }
+
+  // ── UI Modal ──────────────────────────────────────────────────
+  _injectModal() {
+    if (document.getElementById('gate-modal')) return
+    const el = document.createElement('div')
+    el.id = 'gate-modal'
+    el.style.cssText = `
+      display:none; position:fixed; inset:0; background:rgba(15,23,42,.6);
+      z-index:9999; align-items:flex-end; justify-content:center;
+      font-family:'Kanit',sans-serif;
+    `
+    el.innerHTML = `
+      <div id="gate-modal-box" style="
+        background:#fff; border-radius:20px 20px 0 0;
+        padding:28px 24px 40px; width:100%; max-width:480px;
+        animation:slideUp .25s ease;
+      ">
+        <div style="text-align:center; margin-bottom:4px; font-size:2.5rem;" id="gate-modal-icon">⬆️</div>
+        <div style="font-size:1.1rem; font-weight:800; text-align:center; margin-bottom:8px; color:#0F172A;" id="gate-modal-title">อัปเกรดเพื่อใช้ฟีเจอร์นี้</div>
+        <div style="font-size:.88rem; color:#64748B; text-align:center; margin-bottom:20px; line-height:1.6;" id="gate-modal-body"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button onclick="document.getElementById('gate-modal').style.display='none'"
+            style="padding:13px; border:2px solid #E2E8F0; border-radius:10px; background:#fff; font-family:'Kanit'; font-size:.9rem; font-weight:600; cursor:pointer; color:#64748B;">
+            ยังก่อน
+          </button>
+          <button id="gate-modal-cta" onclick="goToPricing()"
+            style="padding:13px; border:none; border-radius:10px; background:#1A56A0; color:#fff; font-family:'Kanit'; font-size:.9rem; font-weight:700; cursor:pointer;">
+            ดูแผนราคา →
+          </button>
+        </div>
+      </div>
+    `
+    el.addEventListener('click', e => { if(e.target===el) el.style.display='none' })
+
+    // inject animation
+    const style = document.createElement('style')
+    style.textContent = '@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}'
+
+    // รอ body พร้อมก่อน append (ป้องกัน null error)
+    const doAppend = () => {
+      document.body.appendChild(el)
+      document.head.appendChild(style)
+      this._modalEl = el
+    }
+
+    if (document.body) {
+      doAppend()
+    } else {
+      document.addEventListener('DOMContentLoaded', doAppend)
+    }
+  }
+
+  _showUpgradeModal(feature) {
+    if (!document.getElementById('gate-modal')) this._injectModal()
+    const info = FEATURE_LABELS[feature]
+    const required = info?.required || 'smart'
+    const reqPlan  = PLANS[required]
+    const icon = reqPlan?.icon || '⬆️'
+
+    const el = document.getElementById('gate-modal')
+    document.getElementById('gate-modal-icon').textContent  = icon
+    document.getElementById('gate-modal-title').textContent = `${info?.th || feature}`
+    document.getElementById('gate-modal-body').innerHTML = `
+      ฟีเจอร์นี้มีในแผน <b>${reqPlan?.label || required}</b> ขึ้นไป<br>
+      <span style="color:#1A56A0; font-weight:600;">฿${reqPlan?.price_monthly}/เดือน</span>
+      · ทดลองฟรี 7 วัน ไม่ต้องใส่บัตร
+    `
+    document.getElementById('gate-modal-cta').textContent = `อัปเกรดเป็น ${reqPlan?.label} →`
+    el.style.display = 'flex'
+  }
+
+  _showQuotaModal(type, used, limit) {
+    if (!document.getElementById('gate-modal')) this._injectModal()
+    const el = document.getElementById('gate-modal')
+    document.getElementById('gate-modal-icon').textContent  = '📊'
+    document.getElementById('gate-modal-title').textContent = 'OCR ครบ quota แล้ว'
+    document.getElementById('gate-modal-body').innerHTML = `
+      แผน <b>${PLANS[this._plan]?.label}</b> ของคุณใช้ไปแล้ว ${used}/${limit} scan/เดือน<br>
+      อัปเกรดเพื่อ scan เพิ่มได้ทันที
+    `
+    document.getElementById('gate-modal-cta').textContent = 'ดูแผนราคา →'
+    el.style.display = 'flex'
+  }
+}
+
+// ── Helper: ไปหน้า pricing ─────────────────────────────────────
+function goToPricing() {
+  document.getElementById('gate-modal').style.display = 'none'
+  // เปิด pricing page ใน LINE browser
+  window.open('https://billdee.app/pricing', '_blank')
+}
+
+// ── Export instance ───────────────────────────────────────────
+const gate = new BilldeePlanGate()
+
+// inject modal ตอน DOM พร้อม (ถ้ายังไม่ได้ inject)
+document.addEventListener('DOMContentLoaded', () => {
+  if (!document.getElementById('gate-modal')) {
+    gate._injectModal()
+  }
+})
+
+// ── Usage examples ─────────────────────────────────────────────
+//
+// 1. ตรวจก่อนทำ:
+//    gate.check('voucher_pdf', () => generateVoucher())
+//
+// 2. ตรวจ OCR:
+//    gate.checkOCR(() => runOCR())
+//
+// 3. ซ่อน/แสดง UI:
+//    if (!gate.can('ai_chat')) { el.style.display = 'none' }
+//
+// 4. แสดง quota:
+//    const q = gate.getOCRInfo()
+//    console.log(`${q.used}/${q.limit} scans used`)
+//
+// 5. โหลดจาก Supabase:
+//    gate.setSubscription(sub) // sub = { plan, ocr_used, docs_used }
+
+</script>
 </head>
 <body>
 
@@ -241,6 +575,17 @@ const CONFIG = {
   CLAUDE_API_KEY:'YOUR_CLAUDE_KEY',
 }
 </script>
+
+<!-- LOGIN --><!-- LOGIN -->
+<div class="screen" id="screen-login">
+  <div class="login-logo">🧾</div>
+  <div class="login-title">Billdee</div>
+  <div class="login-sub">AI Accounting Assistant<br>สำหรับร้านค้าและธุรกิจ SME</div>
+  <button class="btn-line-login" onclick="doLineLogin()">
+    <span style="font-size:1.3rem;">💚</span> เข้าสู่ระบบด้วย LINE
+  </button>
+  <div class="login-note">ปลอดภัย · ไม่เก็บรหัสผ่าน · ใช้ LINE Account</div>
+</div>
 
 <!-- LOADING -->
 <div class="screen active" id="screen-loading">
@@ -273,9 +618,12 @@ const CONFIG = {
 <div class="screen" id="screen-main">
   <div class="topbar">
     <div class="topbar-logo">🧾 Billdee</div>
-    <div class="topbar-right">
-      <b id="userName">...</b>
-      <span id="userPlan" class="plan-badge">TRIAL</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="topbar-right">
+        <b id="userName">...</b>
+        <span id="userPlan" class="plan-badge">TRIAL</span>
+      </div>
+      <button onclick="logout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;padding:5px 10px;font-family:'Kanit';font-size:.72rem;cursor:pointer;">ออก</button>
     </div>
   </div>
   <!-- org switcher -->
@@ -302,6 +650,7 @@ const CONFIG = {
           <div class="stat-box-sub">รายการ</div>
         </div>
       </div>
+      <div id="ocrQuotaBar" style="margin-top:10px;"></div>
     </div>
     <button class="btn-add" onclick="goToAdd()"><span>➕</span> บันทึกเอกสารใหม่</button>
     <div class="sec-label">ทำอะไรต่อ?</div>
@@ -309,6 +658,12 @@ const CONFIG = {
       <div class="quick-card" onclick="switchTab('docs')"><span class="qc-ic">📋</span><span class="qc-label">เอกสารทั้งหมด</span><span class="qc-sub">ค้นหา / แก้ไข</span></div>
       <div class="quick-card" onclick="switchTab('chat')"><span class="qc-ic">🤖</span><span class="qc-label">AI ผู้ช่วย</span><span class="qc-sub">ถามได้เลย</span></div>
       <div class="quick-card" onclick="switchTab('summary')"><span class="qc-ic">📊</span><span class="qc-label">สรุปภาษี</span><span class="qc-sub">รายเดือน/ปี</span></div>
+      <div class="quick-card" onclick="gate.check('income_entry',()=>switchTab('docs'))" style="position:relative;">
+        <span class="qc-ic">💰</span>
+        <span class="qc-label">บิลขาย</span>
+        <span class="qc-sub">Smart ขึ้นไป</span>
+        <span id="incomeGateBadge" style="position:absolute;top:6px;right:6px;font-size:.6rem;background:#EEF6FF;color:#1A56A0;padding:1px 5px;border-radius:999px;font-weight:700;">Smart</span>
+      </div>
       <div class="quick-card" onclick="shareViaLine()"><span class="qc-ic">💚</span><span class="qc-label">แชร์ LINE</span><span class="qc-sub">ส่งนักบัญชี</span></div>
     </div>
     <div class="sec-header"><span class="sec-title">เอกสารล่าสุด</span><span class="sec-link" onclick="switchTab('docs')">ดูทั้งหมด →</span></div>
@@ -372,6 +727,38 @@ const CONFIG = {
     </div>
   </div>
 
+  <!-- TAX TAB -->
+  <div class="content" id="tabTax" style="display:none;">
+    <div class="tax-section-title">รายงานภาษีมูลค่าเพิ่ม</div>
+    <div class="tax-compare-card">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:12px;">เดือนปัจจุบัน — ภ.พ.30</div>
+      <div class="tax-compare-grid">
+        <div class="tax-box buy">
+          <div class="tax-box-label buy">ภาษีซื้อ (Input Tax)</div>
+          <div class="tax-box-value buy" id="taxInputTotal">฿0</div>
+          <div style="font-size:.7rem;color:#1d4ed8;margin-top:3px;" id="taxInputCount">0 รายการ</div>
+        </div>
+        <div class="tax-box sell">
+          <div class="tax-box-label sell">ภาษีขาย (Output Tax)</div>
+          <div class="tax-box-value sell" id="taxOutputTotal">฿0</div>
+          <div style="font-size:.7rem;color:#15803d;margin-top:3px;" id="taxOutputCount">0 รายการ</div>
+        </div>
+      </div>
+      <div class="tax-net-box">
+        <div class="tax-net-label" id="taxNetLabel">ภาษีที่ต้องชำระ</div>
+        <div class="tax-net-value" id="taxNet">฿0</div>
+      </div>
+      <div style="font-size:.75rem;color:var(--gray);margin-top:10px;line-height:1.6;">
+        ⚠️ ยื่น ภ.พ.30 ภายในวันที่ 15 ของเดือนถัดไป<br>
+        ยื่นออนไลน์ได้ที่ <span style="color:var(--blue);font-weight:700;">rd.go.th</span>
+      </div>
+    </div>
+    <div class="tax-section-title">รายการภาษีซื้อ</div>
+    <div id="taxBuyList"></div>
+    <div class="tax-section-title">รายการภาษีขาย</div>
+    <div id="taxSellList"></div>
+  </div>
+
   <!-- TABBAR -->
   <div class="tabbar">
     <button class="tab-btn active" onclick="switchTab('home')" id="tbHome"><span class="t-ic">🏠</span>หน้าแรก</button>
@@ -381,6 +768,10 @@ const CONFIG = {
     </button>
     <button class="tab-btn" onclick="switchTab('chat')" id="tbChat"><span class="t-ic">🤖</span>AI Chat</button>
     <button class="tab-btn" onclick="switchTab('summary')" id="tbSummary"><span class="t-ic">📊</span>สรุป</button>
+    <button class="tab-btn" onclick="openTaxTab()" id="tbTax" style="position:relative;">
+      <span class="t-ic">🧾</span>ภาษี
+      <span id="taxLockBadge" style="position:absolute;top:4px;right:4px;font-size:.5rem;background:#EEF6FF;color:#1A56A0;padding:1px 4px;border-radius:3px;font-weight:700;display:none;">Pro</span>
+    </button>
   </div>
 </div>
 
@@ -394,53 +785,106 @@ const CONFIG = {
     <span style="background:linear-gradient(90deg,#7C3AED,#2563EB);color:#fff;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:999px;">AI</span>
   </div>
   <div class="content" style="padding-bottom:100px;">
-    <div class="form-card">
-      <div class="form-card-title">💰 จำนวนเงิน</div>
-      <div class="fg">
-        <div class="amount-wrap">
-          <span class="amount-pre">฿</span>
-          <input type="number" class="fi amount" id="inAmount" placeholder="0.00" inputmode="decimal" oninput="updatePreview()">
+
+    <!-- STEP 1: ถ่ายรูป/สแกนก่อน (default) -->
+    <div class="scan-first-card" id="scanFirstCard">
+      <div class="scan-first-title">📸 ถ่ายรูปหรือสแกนบิลก่อนเลย</div>
+      <div class="scan-first-sub">AI จะอ่านข้อมูลและกรอกให้อัตโนมัติ</div>
+      <input type="file" id="fileInput" accept="image/*,.pdf" capture="environment" onchange="handleFileScan(this)" style="display:none;">
+      <div class="scan-btn-row">
+        <button class="btn-scan camera" onclick="document.getElementById('fileInput').click()">
+          📷 ถ่ายรูป / เลือกไฟล์
+        </button>
+        <button class="btn-scan skip" onclick="skipScan()">
+          ✏️ กรอกเองแทน
+        </button>
+      </div>
+    </div>
+
+    <!-- AI กำลังอ่าน -->
+    <div class="ai-reading" id="aiReading">
+      <div class="ai-reading-title">
+        <span class="ai-reading-spinner"></span>
+        AI กำลังอ่านบิล...
+      </div>
+      <div style="font-size:.78rem;color:var(--blue);">ประมาณ 3-5 วินาที</div>
+    </div>
+
+    <!-- AI อ่านเสร็จ — แจ้งผล -->
+    <div class="ai-filled-badge" id="aiFilledBadge">
+      ✅ AI อ่านข้อมูลแล้ว — กรุณาตรวจสอบและแก้ไขก่อนบันทึก
+    </div>
+
+    <!-- STEP 2: form fields (ซ่อนไว้ก่อน แสดงหลังสแกนหรือกด "กรอกเอง") -->
+    <div class="form-fields" id="formFields">
+
+      <div class="form-card">
+        <div class="form-card-title">💰 จำนวนเงิน</div>
+        <div class="fg">
+          <div class="amount-wrap">
+            <span class="amount-pre">฿</span>
+            <input type="number" class="fi amount" id="inAmount" placeholder="0.00" inputmode="decimal" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="ai-preview" id="aiPreview">
+          <div class="ai-preview-title">🤖 AI วิเคราะห์</div>
+          <div class="ai-row"><span>จำนวนเงิน</span><span id="ap_amt">฿0</span></div>
+          <div class="ai-row"><span>ประเภท</span><span id="ap_type">-</span></div>
+          <div class="ai-row"><span>หมวด</span><span id="ap_cat">-</span></div>
+          <div class="ai-row"><span>บัญชี</span><span id="ap_debit">-</span></div>
+          <div class="ai-row total"><span>หักภาษีได้</span><span id="ap_total" style="color:var(--green)">฿0</span></div>
         </div>
       </div>
-      <div class="ai-preview" id="aiPreview">
-        <div class="ai-preview-title">🤖 AI วิเคราะห์</div>
-        <div class="ai-row"><span>จำนวนเงิน</span><span id="ap_amt">฿0</span></div>
-        <div class="ai-row"><span>ประเภท</span><span id="ap_type">-</span></div>
-        <div class="ai-row"><span>หมวด</span><span id="ap_cat">-</span></div>
-        <div class="ai-row"><span>บัญชี Debit</span><span id="ap_debit">-</span></div>
-        <div class="ai-row total"><span>หักภาษีได้</span><span id="ap_total" style="color:var(--green)">฿0</span></div>
+
+      <div class="form-card">
+        <div class="form-card-title">📄 ประเภทเอกสาร</div>
+        <div class="type-grid" id="typeGrid"></div>
       </div>
-    </div>
-    <div class="form-card">
-      <div class="form-card-title">📄 ประเภทเอกสาร</div>
-      <div class="type-grid" id="typeGrid"></div>
-    </div>
-    <div class="form-card">
-      <div class="form-card-title">🏪 ข้อมูลเอกสาร</div>
-      <div class="fg"><label>ชื่อร้าน / ผู้รับเงิน <span>*</span></label><input type="text" class="fi" id="inVendor" placeholder="เช่น มาโคร, Shopee, Facebook Ads"></div>
-      <div class="fg"><label>วันที่ <span>*</span></label><input type="date" class="fi" id="inDate"></div>
-      <div class="fg"><label>เลขที่เอกสาร</label><input type="text" class="fi" id="inDocNo" placeholder="INV-001"></div>
-      <div class="fg"><label>ภาษีมูลค่าเพิ่ม (VAT)</label><input type="number" class="fi" id="inVat" placeholder="0.00" inputmode="decimal"></div>
-    </div>
-    <div class="form-card">
-      <div class="form-card-title">🗂️ หมวดหมู่</div>
-      <div class="cat-grid" id="catGrid"></div>
-    </div>
-    <div class="form-card">
-      <div class="form-card-title">📎 แนบไฟล์</div>
-      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-        <div class="upload-ic">📸</div>
-        <div class="upload-label">ถ่ายรูป หรือเลือกไฟล์</div>
-        <div class="upload-sub">JPG, PNG, PDF ไม่เกิน 10MB</div>
-        <div class="upload-file" id="uploadFile"></div>
+
+      <div class="form-card">
+        <div class="form-card-title">🏪 ข้อมูลเอกสาร</div>
+        <div class="fg"><label>ชื่อร้าน / ผู้รับเงิน <span>*</span></label><input type="text" class="fi" id="inVendor" placeholder="เช่น มาโคร, Shopee, Facebook Ads"></div>
+        <div class="fg"><label>วันที่ <span>*</span></label><input type="date" class="fi" id="inDate"></div>
+        <div class="fg"><label>เลขที่เอกสาร</label><input type="text" class="fi" id="inDocNo" placeholder="INV-001"></div>
+        <div class="vat-toggle-row" onclick="toggleVAT()">
+          <span class="vat-toggle-label">🧾 มีใบกำกับภาษี VAT 7%</span>
+          <input type="checkbox" id="vatCheck" style="width:18px;height:18px;cursor:pointer;" onchange="calcVAT()">
+        </div>
+        <div id="vatBreakdown" style="display:none;padding:0 4px;">
+          <div class="vat-result-row"><span>ยอดก่อน VAT</span><b id="vatBase">฿0</b></div>
+          <div class="vat-result-row"><span>VAT 7%</span><b id="vatAmt" style="color:var(--green)">฿0</b></div>
+        </div>
       </div>
-      <input type="file" id="fileInput" accept="image/*,.pdf" capture="environment" onchange="handleFile(this)">
+
+      <div class="form-card">
+        <div class="form-card-title">🗂️ หมวดหมู่</div>
+        <div class="cat-grid" id="catGrid"></div>
+      </div>
+
+      <!-- hidden compat elements (used by JS) -->
+      <div style="display:none;">
+        <div id="uploadArea"></div>
+        <span id="uploadFile"></span>
+      </div>
+
+      <!-- preview รูปที่สแกน (ถ้ามี) -->
+      <div id="scannedPreview" style="display:none;" class="form-card">
+        <div class="form-card-title">📎 รูปบิลที่แนบ</div>
+        <img id="scannedImg" style="width:100%;border-radius:8px;max-height:220px;object-fit:cover;" alt="บิล">
+        <div style="font-size:.75rem;color:var(--gray);margin-top:6px;" id="scannedFileName"></div>
+        <button onclick="rescan()" style="margin-top:8px;background:none;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-family:'Kanit';font-size:.78rem;cursor:pointer;color:var(--gray);">
+          📷 เปลี่ยนรูป
+        </button>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">📝 หมายเหตุ</div>
+        <textarea class="ft" id="inNote" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+      </div>
+
+      <button class="btn-submit" id="btnSubmit" onclick="submitDoc()">💾 บันทึกเอกสาร</button>
     </div>
-    <div class="form-card">
-      <div class="form-card-title">📝 หมายเหตุ</div>
-      <textarea class="ft" id="inNote" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
-    </div>
-    <button class="btn-submit" id="btnSubmit" onclick="submitDoc()">💾 บันทึกเอกสาร</button>
+
   </div>
 </div>
 
@@ -483,6 +927,7 @@ const CATS = [
   {v:'ค่าเช่า',ic:'🏠',lb:'ค่าเช่า',debit:'ค่าเช่า'},
   {v:'ค่าน้ำไฟ',ic:'💡',lb:'น้ำ/ไฟ',debit:'ค่าสาธารณูปโภค'},
   {v:'ค่าน้ำมัน',ic:'⛽',lb:'น้ำมัน',debit:'ค่าพาหนะ'},
+  {v:'ค่าขนส่ง',ic:'🚚',lb:'ค่าขนส่ง',debit:'ค่าขนส่ง'},
   {v:'ค่าสื่อสาร',ic:'📱',lb:'สื่อสาร',debit:'ค่าสื่อสาร'},
   {v:'ซ่อมบำรุง',ic:'🔧',lb:'ซ่อมบำรุง',debit:'ค่าซ่อมบำรุง'},
   {v:'ค่าโฆษณา',ic:'📣',lb:'โฆษณา',debit:'ค่าโฆษณา'},
@@ -531,22 +976,23 @@ async function init() {
       S.user = lp
       updateUserUI(lp.displayName)
       await ensureUser(lp)
-      await loadUserOrgs()
+      await loadUserOrgs()  // loadUserOrgs จัดการ routing เอง
+      return                // ← หยุด ไม่ setTimeout ชน
     } else if (liff.isInClient()) {
       liff.login(); return
     } else {
       S.lineUserId = 'demo_user'
       updateUserUI('Demo User')
       loadDemoData()
+      setTimeout(()=>{ showScreen('screen-main'); renderHome() }, 1100)
     }
   } catch(e) {
     console.info('Demo mode:', e.message)
     S.lineUserId = 'demo_user'
     updateUserUI('Demo')
     loadDemoData()
+    setTimeout(()=>{ showScreen('screen-main'); renderHome() }, 1100)
   }
-
-  setTimeout(()=>{ showScreen('screen-main'); renderHome() }, 1100)
 }
 
 // ════════════════════════════════════════════════════
@@ -566,27 +1012,34 @@ async function ensureUser(lp) {
 
 // โหลด org ทั้งหมดของ user นี้
 async function loadUserOrgs() {
-  if (!sbClient || S.lineUserId === 'demo_user') { loadDemoData(); return }
+  if (!sbClient || S.lineUserId === 'demo_user') {
+    loadDemoData()
+    showScreen('screen-main'); renderHome()
+    return
+  }
   try {
-    // ดึง orgs ผ่าน user_orgs pivot
-    const {data: uo} = await sbClient
+    const {data: uo, error} = await sbClient
       .from('user_orgs')
       .select('org_id, role, organizations(*)')
       .eq('user_id', S.lineUserId)
 
+    if (error) throw error
+
     if (uo && uo.length > 0) {
       S.userOrgs = uo.map(r => ({...r.organizations, member_role: r.role}))
-      // ใช้ org แรกเป็น default (หรือ org ที่เลือกค้างไว้)
       const savedOrgId = localStorage.getItem('billdee_org_id')
       S.currentOrg = S.userOrgs.find(o => o.org_id === savedOrgId) || S.userOrgs[0]
       await loadOrgData()
+      showScreen('screen-main')   // ← เด้งหน้าหลักหลัง load เสร็จ
+      renderHome()
     } else {
-      // ยังไม่มี org → ไปหน้า onboarding
-      showScreen('screen-onboard')
+      // ยังไม่มี org → onboarding
+      showScreen('screen-login')
     }
   } catch(e) {
     console.warn('loadUserOrgs failed:', e)
     loadDemoData()
+    showScreen('screen-main'); renderHome()
   }
 }
 
@@ -678,6 +1131,14 @@ async function loadOrgData() {
     .eq('is_active', true)
     .order('sort_order')
   if (cats) S.categories = cats
+
+  // ตั้งค่า plan gate
+  gate.setSubscription({
+    plan:      S.currentOrg.plan || 'trial',
+    ocr_used:  S.currentOrg.sub?.ocr_used  || 0,
+    docs_used: S.currentOrg.sub?.docs_used || 0,
+  })
+  renderPlanBadge()
 
   // โหลดเอกสาร
   await loadDocs()
@@ -796,7 +1257,7 @@ function updateUserUI(name) {
   document.getElementById('welcomeName').textContent = name.split(' ')[0]
 }
 
-function renderHome() { renderStats(); renderRecentList(); renderSummaryTab() }
+function renderHome() { renderStats(); renderRecentList(); renderSummaryTab(); renderOCRQuota() }
 
 function renderStats() {
   const now = new Date()
@@ -831,13 +1292,18 @@ function docHTML(d) {
   const ic = cat ? cat.ic : (EXPENSE_TYPES.includes(d.doc_type) ? '📄' : '💰')
   const cls = EXPENSE_TYPES.includes(d.doc_type) ? 'ex' : 'in'
   const pfx = EXPENSE_TYPES.includes(d.doc_type) ? '-' : '+'
-  return `<div class="doc-item">
+  const isPending = d.status === 'pending'
+  const approveBtn = isPending
+    ? `<button class="btn-approve" onclick="approveDoc('${d.doc_id}',event)">✓ อนุมัติ</button>`
+    : `<div class="doc-amount ${cls}">${pfx}฿${fmt(d.total_amount)}</div>`
+  return `<div class="doc-item ${isPending?'pending-item':''}">
     <div class="doc-ic">${ic}</div>
     <div class="doc-info">
       <div class="doc-vendor">${d.vendor_name||'-'}</div>
-      <div class="doc-meta"><span class="dot dot-${d.status==='verified'?'v':'p'}"></span>${getCatName(d.category_id)||d.doc_type} · ${fmtDate(d.doc_date)}</div>
+      <div class="doc-meta"><span class="dot dot-${isPending?'p':'v'}"></span>${getCatName(d.category_id)||d.doc_type} · ${fmtDate(d.doc_date)}</div>
+      ${isPending?'':'<div class="doc-meta" style="color:var(--green)">฿'+fmt(d.total_amount)+'</div>'}
     </div>
-    <div class="doc-amount ${cls}">${pfx}฿${fmt(d.total_amount)}</div>
+    ${approveBtn}
   </div>`
 }
 
@@ -847,6 +1313,7 @@ function getCatName(catId) {
 }
 
 function filterDocs(filter, btn) {
+  S.currentFilter = filter
   document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'))
   btn.classList.add('active'); renderAllDocs(filter)
 }
@@ -904,11 +1371,12 @@ function updatePreview() {
     box.classList.add('show')
     const cat = CATS.find(c=>c.v===S.selectedCat)
     const typ = DOC_TYPES.find(t=>t.v===S.selectedType)
-    document.getElementById('ap_amt').textContent   = '฿'+fmt(amt)
-    document.getElementById('ap_type').textContent  = typ?.lb||'-'
-    document.getElementById('ap_cat').textContent   = cat?.v||'-'
-    document.getElementById('ap_debit').textContent = cat?.debit||'ค่าใช้จ่าย'
-    document.getElementById('ap_total').textContent = '฿'+fmt(amt)
+    const safeSet = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val }
+    safeSet('ap_amt',  '฿'+fmt(amt))
+    safeSet('ap_type', typ?.lb||'-')
+    safeSet('ap_cat',  cat?.v||'-')
+    safeSet('ap_debit',cat?.debit||'ค่าใช้จ่าย')
+    safeSet('ap_total','฿'+fmt(amt))
   } else { box.classList.remove('show') }
 }
 
@@ -917,25 +1385,216 @@ function setTodayDate() { const el=document.getElementById('inDate'); if(el) el.
 function handleFile(input) {
   const file = input.files[0]; if(!file) return
   S.uploadedFile = file
-  document.getElementById('uploadArea').classList.add('has-file')
-  document.getElementById('uploadFile').textContent = '✅ '+file.name
+  const ua = document.getElementById('uploadArea')
+  const uf = document.getElementById('uploadFile')
+  if(ua) ua.classList.add('has-file')
+  if(uf) uf.textContent = '✅ '+file.name
 }
+
+
+// ── SCAN FIRST FLOW ──────────────────────────────────────────────
+function skipScan() {
+  document.getElementById('scanFirstCard').style.display = 'none'
+  document.getElementById('formFields').classList.add('show')
+  document.getElementById('formFields').scrollIntoView({behavior:'smooth'})
+}
+
+function rescan() {
+  document.getElementById('formFields').classList.remove('show')
+  document.getElementById('scanFirstCard').style.display = 'block'
+  document.getElementById('scannedPreview').style.display = 'none'
+  document.getElementById('aiFilledBadge').classList.remove('show')
+  document.getElementById('aiReading').classList.remove('show')
+  S.uploadedFile = null
+}
+
+async function handleFileScan(input) {
+  const file = input.files[0]
+  if (!file) return
+  S.uploadedFile = file
+
+  // แสดง preview รูป
+  const preview = document.getElementById('scannedPreview')
+  const img     = document.getElementById('scannedImg')
+  const fname   = document.getElementById('scannedFileName')
+  if (file.type.startsWith('image/')) {
+    img.src = URL.createObjectURL(file)
+    preview.style.display = 'block'
+  }
+  fname.textContent = file.name
+
+  // ซ่อน scan card, แสดง reading indicator
+  document.getElementById('scanFirstCard').style.display = 'none'
+  document.getElementById('aiReading').classList.add('show')
+
+  // เรียก OCR (Claude Vision หรือ mock)
+  const result = await runOCR(file)
+
+  // ซ่อน reading
+  document.getElementById('aiReading').classList.remove('show')
+
+  // แสดง form เสมอ
+  document.getElementById('formFields').classList.add('show')
+
+  if (result) {
+    // OCR สำเร็จ → populate + แสดง badge
+    document.getElementById('aiFilledBadge').classList.add('show')
+    populateFromOCR(result)
+    toast('🤖 AI อ่านบิลแล้ว — ตรวจสอบข้อมูลด้วยนะครับ')
+  } else {
+    // ไม่มี API Key หรือ OCR ล้มเหลว → แจ้งให้กรอกเอง
+    const badge = document.getElementById('aiFilledBadge')
+    badge.style.background = '#FEF3C7'
+    badge.style.borderColor = '#FCD34D'
+    badge.style.color = '#92400E'
+    badge.innerHTML = '📝 ภาพถ่ายบันทึกแล้ว — กรอกข้อมูลด้วยตัวเองด้านล่างครับ'
+    badge.classList.add('show')
+    // ตั้งวันที่เป็นวันนี้ เป็น default
+    setTodayDate()
+    toast('📸 รูปบันทึกแล้ว — กรอกยอดเงินและข้อมูลด้านล่างได้เลย')
+  }
+
+  document.getElementById('formFields').scrollIntoView({behavior:'smooth'})
+}
+
+async function runOCR(file) {
+  // ตรวจ OCR quota
+  if (typeof gate !== 'undefined' && !gate.canOCR()) {
+    gate.checkOCR()
+    return null
+  }
+
+  try {
+    // ถ้ามี Claude API Key → เรียก Claude Vision จริง
+    if (CONFIG.CLAUDE_API_KEY && CONFIG.CLAUDE_API_KEY !== 'YOUR_CLAUDE_KEY') {
+      return await runClaudeOCR(file)
+    }
+    // ไม่มี API Key → บันทึกรูปไว้ แต่ให้ user กรอกเองแทน
+    await new Promise(r => setTimeout(r, 600))  // simulate brief loading
+    return null  // null = ให้ user กรอกเอง
+  } catch(e) {
+    console.warn('OCR failed:', e)
+    return null
+  }
+}
+
+async function runClaudeOCR(file) {
+  // แปลงรูปเป็น base64
+  const base64 = await new Promise((res, rej) => {
+    const r = new FileReader()
+    r.onload = () => res(r.result.split(',')[1])
+    r.onerror = rej
+    r.readAsDataURL(file)
+  })
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 }
+          },
+          {
+            type: 'text',
+            text: `อ่านข้อมูลจากบิล/ใบเสร็จนี้แล้วตอบเป็น JSON เท่านั้น (ไม่มีข้อความอื่น):
+{
+  "vendor_name": "ชื่อร้านค้า",
+  "doc_date": "YYYY-MM-DD",
+  "total_amount": 0.00,
+  "vat_amount": 0.00,
+  "doc_no": "เลขที่ใบเสร็จหรือ null",
+  "category": "หมวดหมู่เช่น สินค้าเพื่อขาย/ค่าเช่า/ค่าน้ำมัน/ค่าขนส่ง/ค่าสื่อสาร/ค่าโฆษณา/ซ่อมบำรุง/อื่นๆ",
+  "doc_type": "receipt หรือ tax_invoice หรือ expense"
+}
+ถ้าอ่านไม่ได้ให้ตอบ null`
+          }
+        ]
+      }]
+    })
+  })
+
+  const data = await res.json()
+  const text = data.content?.[0]?.text || ''
+  try {
+    const clean = text.replace(/```json|```/g, '').trim()
+    const result = JSON.parse(clean)
+    if (typeof gate !== 'undefined') gate.incrementOCR()
+    return result
+  } catch(e) {
+    return null
+  }
+}
+
+function mockOCRResult() {
+  // Demo mode — ไม่มี Claude API Key → คืน null ให้ user กรอกเอง
+  // (ไม่สุ่มข้อมูลผิดๆ อีกต่อไป)
+  return null
+}
+
+function populateFromOCR(result) {
+  if (!result) return
+  // กรอกข้อมูลลง field
+  if (result.vendor_name) document.getElementById('inVendor').value = result.vendor_name
+  if (result.doc_date)    document.getElementById('inDate').value   = result.doc_date
+  if (result.doc_no)      document.getElementById('inDocNo').value  = result.doc_no
+  if (result.total_amount) {
+    document.getElementById('inAmount').value = result.total_amount
+    // trigger VAT ถ้ามี
+    if (result.vat_amount && result.vat_amount > 0) {
+      document.getElementById('vatCheck').checked = true
+      calcVAT()
+    }
+    updatePreview()
+  }
+  // เลือก doc type
+  if (result.doc_type) {
+    const typeEl = document.querySelector(`.type-chip[onclick*="${result.doc_type}"]`)
+    if (typeEl) { selectType(result.doc_type, typeEl) }
+  }
+  // เลือก category
+  if (result.category) {
+    const catEl = Array.from(document.querySelectorAll('.cat-chip'))
+      .find(el => el.textContent.includes(result.category.substring(0,4)))
+    if (catEl) {
+      const catVal = result.category
+      selectCat(catVal, catEl)
+    }
+  }
+}
+
+// แก้ resetForm ให้รีเซ็ต scan flow ด้วย
 
 function resetForm() {
   ['inAmount','inVendor','inDocNo','inVat','inNote'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value='' })
   S.selectedType=''; S.selectedCat=''; S.uploadedFile=null
   setTodayDate()
   document.querySelectorAll('.type-chip,.cat-chip').forEach(c=>c.classList.remove('sel'))
-  document.getElementById('aiPreview').classList.remove('show')
-  document.getElementById('uploadArea').classList.remove('has-file')
-  document.getElementById('uploadFile').textContent=''
+  const apEl = document.getElementById('aiPreview'); if(apEl) apEl.classList.remove('show')
+  const uaEl = document.getElementById('uploadArea'); if(uaEl) uaEl.classList.remove('has-file')
+  // รีเซ็ต scan flow
+  const scanCard = document.getElementById('scanFirstCard')
+  const formFields = document.getElementById('formFields')
+  const aiReading = document.getElementById('aiReading')
+  const aiBadge = document.getElementById('aiFilledBadge')
+  const scannedPreview = document.getElementById('scannedPreview')
+  if (scanCard) scanCard.style.display = 'block'
+  if (formFields) formFields.classList.remove('show')
+  if (aiReading) aiReading.classList.remove('show')
+  if (aiBadge) aiBadge.classList.remove('show')
+  if (scannedPreview) scannedPreview.style.display = 'none'
 }
 
 async function submitDoc() {
   const amount = parseFloat(document.getElementById('inAmount').value)
   const vendor = document.getElementById('inVendor').value.trim()
   const date   = document.getElementById('inDate').value
-  const vat    = parseFloat(document.getElementById('inVat').value)||0
+  const vat    = getVATAmount()
   const docNo  = document.getElementById('inDocNo').value.trim()
   const note   = document.getElementById('inNote').value.trim()
 
@@ -1092,11 +1751,19 @@ async function shareViaLine() {
   const now=new Date()
   const monthly=S.docs.filter(d=>{const dd=new Date(d.doc_date);return dd.getMonth()===now.getMonth()&&dd.getFullYear()===now.getFullYear()})
   const total=monthly.reduce((s,d)=>s+(EXPENSE_TYPES.includes(d.doc_type)?d.total_amount:0),0)
+  const buyVat=monthly.reduce((s,d)=>s+(EXPENSE_TYPES.includes(d.doc_type)?d.vat_amount||0:0),0)
+  const text=`📊 ${S.currentOrg?.name||'Billdee'} — สรุป${MONTHS[now.getMonth()]}\n💸 ค่าใช้จ่าย ฿${fmt(total)}\n🧾 ภาษีซื้อ ฿${fmt(buyVat)}\n📋 ${monthly.length} รายการ\n\nจัดการด้วย Billdee AI`
   try {
-    if(typeof liff!=='undefined'&&liff.isInClient())
-      await liff.shareTargetPicker([{type:'text',text:`📊 ${S.currentOrg?.name||'Billdee'} — สรุป${MONTHS[now.getMonth()]}\n💸 ค่าใช้จ่าย ฿${fmt(total)}\n📋 ${monthly.length} รายการ\n\nจัดการด้วย Billdee AI`}])
-    else toast('💡 แชร์ได้เมื่อเปิดผ่าน LINE')
-  } catch(e) { toast('💡 เปิดผ่าน LINE เพื่อแชร์') }
+    if(typeof liff!=='undefined'&&liff.isInClient()&&liff.isLoggedIn()){
+      await liff.shareTargetPicker([{type:'text',text}])
+    } else {
+      await navigator.clipboard.writeText(text).catch(()=>{})
+      toast('📋 Copy สรุปแล้ว — วางใน LINE ได้เลย')
+    }
+  } catch(e) {
+    try { await navigator.clipboard.writeText(text) } catch(_){}
+    toast('📋 Copy แล้ว — วางใน LINE ได้เลย')
+  }
 }
 
 // ════════════════════════════════════════════════════
@@ -1109,17 +1776,22 @@ function showScreen(id) {
 
 function switchTab(tab) {
   S.currentTab=tab
-  const map={home:'tabHome',docs:'tabDocs',chat:'tabChat',summary:'tabSummary'}
+  const map={home:'tabHome',docs:'tabDocs',chat:'tabChat',summary:'tabSummary',tax:'tabTax'}
   Object.entries(map).forEach(([k,id])=>{
     const el=document.getElementById(id)
     if (!el) return
     el.style.display = k===tab ? (k==='chat'?'flex':'block') : 'none'
   })
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'))
-  const tbMap={home:'tbHome',docs:'tbDocs',chat:'tbChat',summary:'tbSummary'}
+  const tbMap={home:'tbHome',docs:'tbDocs',chat:'tbChat',summary:'tbSummary',tax:'tbTax'}
   const tb=document.getElementById(tbMap[tab]); if(tb) tb.classList.add('active')
-  if(tab==='docs') renderAllDocs()
+  if(tab==='chat' && !gate.can('ai_chat')) {
+    gate.check('ai_chat')   // แสดง modal อัปเกรด
+    return                  // ไม่เปิด tab
+  }
+  if(tab==='docs') renderAllDocs(S.currentFilter||'all')
   if(tab==='summary') renderSummaryTab()
+  if(tab==='tax') renderTaxTab()
 }
 
 function goToAdd()    { showScreen('screen-add'); resetForm() }
@@ -1137,9 +1809,175 @@ function showOrgMenu() {
 function fmt(n){ return (n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}) }
 function fmtDate(s){ if(!s) return '-'; const d=new Date(s); return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}` }
 function emptyState(ic,title,sub){ return `<div class="empty"><div class="empty-ic">${ic}</div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>` }
+function logout() {
+  if (!confirm('ออกจากระบบ?')) return
+  localStorage.removeItem('billdee_org_id')
+  S.currentOrg = null; S.userOrgs = []; S.docs = []
+  S.lineUserId = 'demo_user'
+  try { if(liff.isLoggedIn()) liff.logout() } catch(e){}
+  showScreen('screen-login')
+  // reset form
+  document.getElementById('obOrgName').value=''
+  document.getElementById('obTaxId').value=''
+  document.getElementById('obBtn').disabled=false
+  document.getElementById('obBtn').textContent='🚀 เริ่มใช้งาน Billdee'
+}
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000) }
 function showOverlay(t,s){ const o=document.getElementById('overlay'); o.classList.add('show'); document.getElementById('overlayTitle').textContent=t; document.getElementById('overlaySub').textContent=s }
 function hideOverlay(){ document.getElementById('overlay').classList.remove('show') }
+
+
+
+// ── PLAN GATE UI ─────────────────────────────────────────────────
+function renderPlanBadge() {
+  const info = gate.getPlanInfo()
+  document.getElementById('userPlan').textContent = info.label || 'TRIAL'
+  // แสดง/ซ่อน feature ตาม plan
+  lockFeaturesUI()
+}
+
+function lockFeaturesUI() {
+  if (typeof gate === 'undefined') return
+  // AI Chat tab — เฉพาะ Pro
+  const chatBtn = document.getElementById('tbChat')
+  if (chatBtn) {
+    const canChat = gate.can('ai_chat')
+    chatBtn.style.opacity = canChat ? '1' : '.45'
+    chatBtn.title = canChat ? '' : 'Pro feature'
+  }
+  // Tax tab badge — แสดง "Pro" ถ้าไม่ใช่ Pro
+  const taxBadge = document.getElementById('taxLockBadge')
+  if (taxBadge) {
+    taxBadge.style.display = gate.can('vat_report') ? 'none' : 'inline-block'
+  }
+}
+
+function openTaxTab() {
+  if (typeof gate !== 'undefined' && !gate.can('vat_report')) {
+    gate.check('vat_report')   // แสดง upgrade modal
+    return
+  }
+  switchTab('tax')
+}
+
+// OCR quota bar ใน hero
+function renderOCRQuota() {
+  if (typeof gate === 'undefined') return
+  const q = gate.getOCRInfo()
+  const el = document.getElementById('ocrQuotaBar')
+  if (!el) return
+  if (q.isUnlimited) { el.innerHTML = '🤖 OCR ไม่จำกัด'; return }
+  const pct = q.pct
+  const color = pct >= 90 ? '#DC2626' : pct >= 70 ? '#D97706' : '#16A34A'
+  el.innerHTML = `
+    <div style="font-size:.7rem;color:var(--gray);margin-bottom:3px;">
+      OCR ${q.used}/${q.limit} scan/เดือน
+    </div>
+    <div style="background:var(--border);border-radius:999px;height:5px;overflow:hidden;">
+      <div style="width:${pct}%;background:${color};height:100%;border-radius:999px;transition:.4s;"></div>
+    </div>`
+}
+
+// ── APPROVE DOC ──────────────────────────────────────────────────
+async function approveDoc(docId, event) {
+  event.stopPropagation()
+  const doc = S.docs.find(d => d.doc_id === docId)
+  if (!doc) return
+  doc.status = 'verified'
+  doc.verified_by = S.lineUserId
+  // อัปเดตใน Supabase
+  if (sbClient && S.lineUserId !== 'demo_user') {
+    await sbClient.from('documents').update({
+      status: 'verified',
+      verified_by: S.lineUserId,
+      verified_at: new Date().toISOString(),
+    }).eq('doc_id', docId)
+  }
+  renderAllDocs(S.currentFilter || 'all')
+  renderStats()
+  toast('✅ อนุมัติเรียบร้อยแล้ว')
+}
+
+// ── VAT AUTO-CALCULATE ───────────────────────────────────────────
+function toggleVAT() {
+  const cb = document.getElementById('vatCheck')
+  cb.checked = !cb.checked
+  calcVAT()
+}
+
+function calcVAT() {
+  const cb     = document.getElementById('vatCheck')
+  const amount = parseFloat(document.getElementById('inAmount').value) || 0
+  const bd     = document.getElementById('vatBreakdown')
+  if (cb.checked && amount > 0) {
+    bd.style.display = 'block'
+    const base = Math.round(amount * 100 / 107) / 100
+    const vat  = Math.round((amount - base) * 100) / 100
+    document.getElementById('vatBase').textContent = '฿' + fmt(base)
+    document.getElementById('vatAmt').textContent  = '฿' + fmt(vat)
+  } else {
+    bd.style.display = 'none'
+  }
+}
+
+function getVATAmount() {
+  const cb     = document.getElementById('vatCheck')
+  const amount = parseFloat(document.getElementById('inAmount').value) || 0
+  if (!cb || !cb.checked || !amount) return 0
+  return Math.round((amount - (amount * 100 / 107)) * 100) / 100
+}
+
+// ── TAX REPORT (ภ.พ.30) ─────────────────────────────────────────
+function renderTaxTab() {
+  const now = new Date()
+  const monthly = S.docs.filter(d => {
+    const dd = new Date(d.doc_date)
+    return dd.getMonth() === now.getMonth() && dd.getFullYear() === now.getFullYear()
+  })
+  // ภาษีซื้อ = VAT จากเอกสารค่าใช้จ่าย
+  const buyDocs  = monthly.filter(d => EXPENSE_TYPES.includes(d.doc_type) && (d.vat_amount || 0) > 0)
+  const sellDocs = monthly.filter(d => !EXPENSE_TYPES.includes(d.doc_type) && (d.vat_amount || 0) > 0)
+  const buyVat   = buyDocs.reduce((s,d)  => s + (d.vat_amount || 0), 0)
+  const sellVat  = sellDocs.reduce((s,d) => s + (d.vat_amount || 0), 0)
+  const net      = sellVat - buyVat
+
+  document.getElementById('taxInputTotal').textContent  = '฿' + fmt(buyVat)
+  document.getElementById('taxInputCount').textContent  = buyDocs.length + ' รายการ'
+  document.getElementById('taxOutputTotal').textContent = '฿' + fmt(sellVat)
+  document.getElementById('taxOutputCount').textContent = sellDocs.length + ' รายการ'
+  document.getElementById('taxNet').textContent = '฿' + fmt(Math.abs(net))
+  document.getElementById('taxNetLabel').textContent =
+    net >= 0 ? 'ภาษีที่ต้องชำระ (ภาษีขาย > ซื้อ)' : 'ภาษีที่ขอคืนได้ (ภาษีซื้อ > ขาย)'
+
+  // รายการภาษีซื้อ
+  const buyEl = document.getElementById('taxBuyList')
+  buyEl.innerHTML = buyDocs.length
+    ? buyDocs.map(d => taxDocRow(d, 'buy')).join('')
+    : '<div class="empty" style="padding:20px"><div class="empty-ic">📭</div><div class="empty-sub">ไม่มีภาษีซื้อเดือนนี้</div></div>'
+
+  // รายการภาษีขาย
+  const sellEl = document.getElementById('taxSellList')
+  sellEl.innerHTML = sellDocs.length
+    ? sellDocs.map(d => taxDocRow(d, 'sell')).join('')
+    : '<div class="empty" style="padding:20px"><div class="empty-ic">📭</div><div class="empty-sub">ไม่มีภาษีขายเดือนนี้</div></div>'
+}
+
+function taxDocRow(d, type) {
+  const color = type === 'buy' ? 'var(--blue)' : 'var(--green)'
+  return `<div class="doc-item">
+    <div class="doc-ic">${type === 'buy' ? '🧾' : '💰'}</div>
+    <div class="doc-info">
+      <div class="doc-vendor">${d.vendor_name || '-'}</div>
+      <div class="doc-meta">${fmtDate(d.doc_date)} · รวม ฿${fmt(d.total_amount)}</div>
+    </div>
+    <div style="font-size:.9rem;font-weight:700;color:${color};flex-shrink:0;">VAT ฿${fmt(d.vat_amount)}</div>
+  </div>`
+}
+
+// ── LOGIN / LOGOUT ───────────────────────────────────────────────
+function doLineLogin() {
+  try { liff.login() } catch(e) { toast('❌ ไม่สามารถ login ได้ตอนนี้') }
+}
 
 window.addEventListener('DOMContentLoaded', init)
 </script>
