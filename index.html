@@ -569,10 +569,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 const CONFIG = {
-  LIFF_ID:       '2010347722-o8ofu42K',
-  SUPABASE_URL:  'https://cfbknvjkknhfsxnrejlc.supabase.co',
-  SUPABASE_KEY:  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk',
-  CLAUDE_API_KEY:'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',
+  LIFF_ID:      '2010347722-o8ofu42K',
+  SUPABASE_URL: 'https://cfbknvjkknhfsxnrejlc.supabase.co',
+  SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk',
+  OCR_ENDPOINT: '/api/ocr',   // Vercel proxy — Key ปลอดภัยใน Vercel env
 }
 </script>
 
@@ -1465,13 +1465,8 @@ async function runOCR(file) {
   }
 
   try {
-    // ถ้ามี Claude API Key → เรียก Claude Vision จริง
-    if (CONFIG.CLAUDE_API_KEY && CONFIG.CLAUDE_API_KEY !== 'YOUR_CLAUDE_KEY') {
-      return await runClaudeOCR(file)
-    }
-    // ไม่มี API Key → บันทึกรูปไว้ แต่ให้ user กรอกเองแทน
-    await new Promise(r => setTimeout(r, 600))  // simulate brief loading
-    return null  // null = ให้ user กรอกเอง
+    // เรียก Vercel proxy /api/ocr (API Key ปลอดภัยใน Vercel env)
+    return await runClaudeOCR(file)
   } catch(e) {
     console.warn('OCR failed:', e)
     return null
@@ -1487,48 +1482,27 @@ async function runClaudeOCR(file) {
     r.readAsDataURL(file)
   })
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  // ส่งไป Vercel proxy — API Key ไม่ expose ใน client
+  const res = await fetch(CONFIG.OCR_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 }
-          },
-          {
-            type: 'text',
-            text: `อ่านข้อมูลจากบิล/ใบเสร็จนี้แล้วตอบเป็น JSON เท่านั้น (ไม่มีข้อความอื่น):
-{
-  "vendor_name": "ชื่อร้านค้า",
-  "doc_date": "YYYY-MM-DD",
-  "total_amount": 0.00,
-  "vat_amount": 0.00,
-  "doc_no": "เลขที่ใบเสร็จหรือ null",
-  "category": "หมวดหมู่เช่น สินค้าเพื่อขาย/ค่าเช่า/ค่าน้ำมัน/ค่าขนส่ง/ค่าสื่อสาร/ค่าโฆษณา/ซ่อมบำรุง/อื่นๆ",
-  "doc_type": "receipt หรือ tax_invoice หรือ expense"
-}
-ถ้าอ่านไม่ได้ให้ตอบ null`
-          }
-        ]
-      }]
+      imageBase64: base64,
+      mediaType:   file.type || 'image/jpeg',
     })
   })
 
-  const data = await res.json()
-  const text = data.content?.[0]?.text || ''
-  try {
-    const clean = text.replace(/```json|```/g, '').trim()
-    const result = JSON.parse(clean)
-    if (typeof gate !== 'undefined') gate.incrementOCR()
-    return result
-  } catch(e) {
+  if (!res.ok) {
+    console.warn('OCR proxy error:', res.status)
     return null
   }
+
+  const data = await res.json()
+  if (data.success && data.data) {
+    if (typeof gate !== 'undefined') gate.incrementOCR()
+    return data.data
+  }
+  return null
 }
 
 function mockOCRResult() {
@@ -1664,17 +1638,17 @@ async function sendChat() {
   try {
     let ans = ''
     if (CONFIG.CLAUDE_API_KEY !== 'YOUR_CLAUDE_KEY') {
-      const res = await fetch('https://api.anthropic.com/v1/messages',{
+      const res = await fetch('/api/chat', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          model:'claude-sonnet-4-20250514',max_tokens:400,
-          system:`คุณคือ Billdee AI ผู้ช่วยบัญชี SME ไทย ตอบภาษาไทยสั้น ชัดเจน ไม่เกิน 3 ประโยค`,
-          messages:[...S.chatHistory.slice(-4),{role:'user',content:`${ctx}\n\nคำถาม: ${msg}`}]
+          context: ctx,
+          message: msg,
+          history: S.chatHistory.slice(-4),
         })
       })
       const data = await res.json()
-      ans = data.content?.[0]?.text || 'ขออภัย ไม่สามารถตอบได้'
+      ans = data.answer || 'ขออภัย ไม่สามารถตอบได้'
     } else {
       ans = ruleAI(msg,{totalExp,totalVat,pending,topCat,count:monthly.length})
     }
