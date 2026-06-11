@@ -6,11 +6,11 @@ export const config = { runtime: 'edge' }
 
 // ลองตามลำดับ — ใช้ models ที่มีใน API key นี้จริง
 const MODELS = [
-  { id:'gemini-2.0-flash',       json:true },
-  { id:'gemini-2.0-flash-001',   json:true },
-  { id:'gemini-2.5-flash',       json:true },
-  { id:'gemini-2.5-flash-image', json:true },
-  { id:'gemini-flash-latest',    json:true },
+  { id:'gemini-2.0-flash'       },
+  { id:'gemini-2.0-flash-001'   },
+  { id:'gemini-2.5-flash'       },
+  { id:'gemini-2.5-flash-image' },
+  { id:'gemini-flash-latest'    },
 ]
 
 export default async function handler(req) {
@@ -69,12 +69,10 @@ export default async function handler(req) {
 กฎ: พ.ศ. 2569 = ค.ศ. 2026, สลิปโอน vat=0, ถ้าอ่านไม่ชัดอย่าปฏิเสธ`
 
     const tried = []
-    for (const { id: model, json: supportsJson } of MODELS) {
+    for (const { id: model } of MODELS) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
-      const genCfg = supportsJson
-        ? { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: 'application/json' }
-        : { temperature: 0.1, maxOutputTokens: 1024 }
+      const genCfg = { temperature: 0.1, maxOutputTokens: 8192 }
 
       const res = await fetch(url, {
         method: 'POST',
@@ -84,9 +82,7 @@ export default async function handler(req) {
             { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
             { text: prompt }
           ]}],
-          generationConfig: genCfg.responseMimeType
-            ? { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: genCfg.responseMimeType }
-            : { temperature: 0.1, maxOutputTokens: 8192 }
+          generationConfig: genCfg
         })
       })
 
