@@ -1,151 +1,105 @@
-// api/ocr.js — Vercel Edge Function
-// BillDEE AI OCR — ใช้ Google Gemini Vision
-// ENV: GEMINI_API_KEY (ตั้งใน Vercel → Settings → Environment Variables)
 
-export const config = { runtime: 'edge' }
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BillDEE OCR Test</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:600px;margin:40px auto;padding:0 20px;background:#f5f5f5}
+h2{color:#0e9aa7}
+.card{background:#fff;border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.btn{background:#0e9aa7;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;width:100%;margin-bottom:8px}
+.btn2{background:#f0f8f9;color:#0e9aa7;border:1.5px solid #0e9aa7}
+.btn:disabled{opacity:.5}
+pre{background:#f0f8f9;border-radius:10px;padding:14px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin-top:10px}
+.ok{color:#16a06f;font-weight:700}
+.err{color:#e25563;font-weight:700}
+input[type=file]{width:100%;padding:10px;border:2px dashed #ccc;border-radius:10px;margin-bottom:12px;box-sizing:border-box}
+</style>
+</head>
+<body>
+<h2>🧪 BillDEE OCR Debug</h2>
 
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders(req) })
-  }
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
-  }
+<div class="card">
+  <h3 style="margin:0 0 12px">Step 1 — ดู Models ที่ใช้ได้</h3>
+  <button class="btn btn2" onclick="listModels()">📋 ดูรายการ Gemini Models</button>
+  <pre id="list-res" style="display:none"></pre>
+</div>
 
-  try {
-    const body = await req.json()
-    const { imageBase64, mediaType, businessName, ownerName, taxId } = body
+<div class="card">
+  <h3 style="margin:0 0 12px">Step 2 — ทดสอบ OCR</h3>
+  <input type="file" id="img-in" accept="image/*"/>
+  <button class="btn" onclick="testOCR()" id="ocr-btn">📷 อ่านใบเสร็จ</button>
+  <pre id="ocr-res" style="display:none"></pre>
+</div>
 
-    if (!imageBase64) {
-      return new Response(
-        JSON.stringify({ error: 'imageBase64 is required' }),
-        { status: 400, headers: corsHeaders(req) }
-      )
+<div class="card" style="background:#fff8e1">
+  <b>ถ้าเจอ Error:</b>
+  <ul style="font-size:13px;line-height:1.9;color:#555;margin:8px 0 0">
+    <li><b>GEMINI_API_KEY not set</b> → Vercel → Settings → Env → เพิ่ม GEMINI_API_KEY</li>
+    <li><b>API_KEY_INVALID</b> → key ผิด → ตรวจที่ aistudio.google.com/apikey</li>
+    <li><b>ไม่พบ model</b> → กด Step 1 ก่อน แล้วส่งรายการให้ developer</li>
+    <li><b>Fetch failed</b> → ocr.js ยังไม่ได้ push ขึ้น GitHub</li>
+  </ul>
+</div>
+
+<script>
+const BASE = window.location.origin
+
+async function listModels(){
+  const el = document.getElementById('list-res')
+  el.style.display = 'block'
+  el.textContent = 'กำลังดึงรายการ…'
+  try{
+    const r = await fetch(`${BASE}/api/ocr`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ _listModels: true, imageBase64: 'dGVzdA==' })
+    })
+    const j = await r.json()
+    if(j.available){
+      el.innerHTML = `<span class="ok">✅ Models ที่ใช้ได้ (${j.available.length} รายการ):</span>\n\n${j.available.map(m=>'• '+m).join('\n')}`
+    } else {
+      el.innerHTML = `<span class="err">❌ Error</span>\n\n${JSON.stringify(j,null,2)}`
     }
-
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY not set in Vercel environment variables' }),
-        { status: 500, headers: corsHeaders(req) }
-      )
-    }
-
-    // ── Business context ──────────────────────────────────────
-    const bizCtx = businessName
-      ? `\nข้อมูลกิจการของลูกค้า: ชื่อ "${businessName}"${ownerName ? ` เจ้าของ "${ownerName}"` : ''}${taxId ? ` เลขภาษี ${taxId}` : ''}\nถ้าเห็นชื่อนี้ในเอกสารในฐานะ "ผู้จ่าย" ให้ระบุ payer_name เป็นชื่อนี้`
-      : ''
-
-    const prompt = `คุณคือผู้เชี่ยวชาญด้านบัญชีและภาษีไทย มีความเชี่ยวชาญในการอ่านเอกสารทางการเงินทุกประเภท${bizCtx}
-
-อ่านข้อมูลจากภาพเอกสารนี้ เอกสารอาจเป็น:
-• ใบเสร็จรับเงิน (Receipt)
-• ใบกำกับภาษี (Tax Invoice)
-• สลิปโอนเงิน (Transfer Slip) — ธนาคาร / พร้อมเพย์ / QR
-• ใบแจ้งหนี้ (Invoice)
-• บิลค่าน้ำ / ค่าไฟ / ค่าเช่า
-• ใบเสร็จร้านค้าออนไลน์ (Shopee, Lazada, Line Shopping)
-
-ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown code block:
-{
-  "doc_type": "receipt | tax_invoice | transfer_slip | bill | invoice | other",
-  "vendor_name": "ชื่อร้านค้า / บริษัทผู้รับเงิน / ชื่อผู้รับโอน",
-  "payer_name": "ชื่อผู้จ่ายเงิน / ผู้โอน (ถ้าอ่านได้ ถ้าไม่มีใส่ null)",
-  "doc_date": "YYYY-MM-DD (แปลงปี พ.ศ. → ค.ศ. เช่น 2569 → 2026)",
-  "doc_no": "เลขที่เอกสาร / Transaction ID (หรือ null)",
-  "items": [{"name": "รายการสินค้า/บริการ", "amount": 0}],
-  "subtotal": 0,
-  "vat_amount": 0,
-  "total_amount": 0,
-  "category": "วัตถุดิบ | ค่าเช่า | เงินเดือน | ค่าน้ำ-ไฟ | ค่าเดินทาง | วัสดุสำนักงาน | การตลาด | รายได้ | อื่น ๆ",
-  "confidence": 0.95,
-  "notes": "ข้อสังเกต เช่น รูปเบลอ ข้อมูลไม่ครบ"
+  }catch(e){
+    el.innerHTML = `<span class="err">❌ Fetch failed: ${e.message}</span>\n\nocr.js ยังไม่ได้ push หรือ Vercel ยัง deploy ไม่เสร็จ`
+  }
 }
 
-กฎสำคัญ:
-- วันที่ไทย: 21/2/69 หรือ 21 ก.พ. 69 = 2026-02-21 (พ.ศ. 2569 = ค.ศ. 2026)
-- ปี 2 หลัก < 70: บวก 2500 ได้ พ.ศ. แล้วลบ 543
-- สลิปโอน: vendor_name = ผู้รับ, payer_name = ผู้โอน, vat_amount = 0
-- ถ้าอ่านรูปไม่ชัด: ใส่ข้อมูลที่อ่านได้ confidence ต่ำ อย่าปฏิเสธ`
-
-    // ── Call Gemini 1.5 Flash ─────────────────────────────────
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`
-
-    const geminiRes = await fetch(geminiUrl, {
+async function testOCR(){
+  const file = document.getElementById('img-in').files[0]
+  if(!file){alert('เลือกรูปก่อน');return}
+  const btn = document.getElementById('ocr-btn')
+  const el = document.getElementById('ocr-res')
+  btn.disabled = true; btn.textContent = 'กำลังอ่าน…'
+  el.style.display = 'block'; el.textContent = 'กำลังส่งรูปไป Gemini…'
+  try{
+    const b64 = await toBase64(file)
+    const r = await fetch(`${BASE}/api/ocr`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              inline_data: {
-                mime_type: mediaType || 'image/jpeg',
-                data: imageBase64,
-              }
-            },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 1024,
-        }
+        imageBase64: b64.split(',')[1],
+        mediaType: file.type,
+        businessName: 'ร้านทดสอบ',
+        ownerName: 'คุณทดสอบ'
       })
     })
-
-    if (!geminiRes.ok) {
-      const err = await geminiRes.text()
-      console.error('Gemini API error:', geminiRes.status, err)
-      return new Response(
-        JSON.stringify({ error: 'Gemini API error', status: geminiRes.status, detail: err }),
-        { status: geminiRes.status, headers: corsHeaders(req) }
-      )
+    const j = await r.json()
+    if(j.success){
+      el.innerHTML = `<span class="ok">✅ อ่านสำเร็จ! model: ${j.data?._model} · confidence: ${Math.round((j.data?.confidence||0)*100)}%</span>\n\n${JSON.stringify(j.data,null,2)}`
+    } else {
+      el.innerHTML = `<span class="err">❌ ล้มเหลว</span>\n\n${JSON.stringify(j,null,2)}`
     }
-
-    const geminiData = await geminiRes.json()
-    const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-
-    // strip markdown fences if Gemini wraps in ```json ... ```
-    const clean = text
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim()
-
-    try {
-      const result = JSON.parse(clean)
-      return new Response(
-        JSON.stringify({ success: true, data: result }),
-        { status: 200, headers: corsHeaders(req) }
-      )
-    } catch (parseErr) {
-      console.error('JSON parse failed:', clean)
-      return new Response(
-        JSON.stringify({ success: false, raw: text, parseError: parseErr.message }),
-        { status: 200, headers: corsHeaders(req) }
-      )
-    }
-
-  } catch (e) {
-    console.error('OCR handler error:', e)
-    return new Response(
-      JSON.stringify({ error: e.message }),
-      { status: 500, headers: corsHeaders(req) }
-    )
+  }catch(e){
+    el.innerHTML = `<span class="err">❌ ${e.message}</span>`
   }
+  btn.disabled = false; btn.textContent = '📷 อ่านใบเสร็จ'
 }
 
-function corsHeaders(req) {
-  const origin = req?.headers?.get('origin') || ''
-  const allowed = [
-    'https://billdeeline.vercel.app',
-    'https://liff.line.me',
-    'http://localhost:3000',
-  ]
-  return {
-    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  }
-}
+function toBase64(f){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsDataURL(f)})}
+</script>
+</body>
+</html>
