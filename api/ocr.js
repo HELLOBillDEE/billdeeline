@@ -1,46 +1,37 @@
 // api/ocr.js — Vercel Edge Function
-// BillDEE AI OCR — ผู้เชี่ยวชาญบัญชีและภาษีไทย
-// รับ: { imageBase64, mediaType, businessName?, ownerName?, taxId? }
-// คืน: { success, data } หรือ { success: false, raw }
+// BillDEE AI OCR — ใช้ Google Gemini Vision
+// ENV: GEMINI_API_KEY (ตั้งใน Vercel → Settings → Environment Variables)
 
 export const config = { runtime: 'edge' }
 
 export default async function handler(req) {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 })
-
-  const origin = req.headers.get('origin') || ''
-  const allowed = [
-    'https://billdeeline.vercel.app',
-    'https://billdeeline-a8y3.vercel.app',
-    'https://liff.line.me',
-    'http://localhost:3000',
-  ]
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0],
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders(req) })
   }
-
-  // preflight
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders })
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 })
+  }
 
   try {
     const body = await req.json()
     const { imageBase64, mediaType, businessName, ownerName, taxId } = body
 
-    if (!imageBase64) return new Response(
-      JSON.stringify({ error: 'imageBase64 is required' }),
-      { status: 400, headers: corsHeaders }
-    )
+    if (!imageBase64) {
+      return new Response(
+        JSON.stringify({ error: 'imageBase64 is required' }),
+        { status: 400, headers: corsHeaders(req) }
+      )
+    }
 
-    const apiKey = process.env.CLAUDE_API_KEY
-    if (!apiKey) return new Response(
-      JSON.stringify({ error: 'CLAUDE_API_KEY not configured in Vercel env' }),
-      { status: 500, headers: corsHeaders }
-    )
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'GEMINI_API_KEY not set in Vercel environment variables' }),
+        { status: 500, headers: corsHeaders(req) }
+      )
+    }
 
-    // ── Build context about the business ──────────────────────
+    // ── Business context ──────────────────────────────────────
     const bizCtx = businessName
       ? `\nข้อมูลกิจการของลูกค้า: ชื่อ "${businessName}"${ownerName ? ` เจ้าของ "${ownerName}"` : ''}${taxId ? ` เลขภาษี ${taxId}` : ''}\nถ้าเห็นชื่อนี้ในเอกสารในฐานะ "ผู้จ่าย" ให้ระบุ payer_name เป็นชื่อนี้`
       : ''
@@ -49,103 +40,112 @@ export default async function handler(req) {
 
 อ่านข้อมูลจากภาพเอกสารนี้ เอกสารอาจเป็น:
 • ใบเสร็จรับเงิน (Receipt)
-• ใบกำกับภาษี (Tax Invoice)  
-• สลิปโอนเงิน (Transfer Slip) — ธนาคาร/พร้อมเพย์/QR
+• ใบกำกับภาษี (Tax Invoice)
+• สลิปโอนเงิน (Transfer Slip) — ธนาคาร / พร้อมเพย์ / QR
 • ใบแจ้งหนี้ (Invoice)
-• บิลค่าน้ำ/ค่าไฟ/ค่าเช่า
+• บิลค่าน้ำ / ค่าไฟ / ค่าเช่า
 • ใบเสร็จร้านค้าออนไลน์ (Shopee, Lazada, Line Shopping)
 
-ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่นก่อนหรือหลัง:
+ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown code block:
 {
   "doc_type": "receipt | tax_invoice | transfer_slip | bill | invoice | other",
   "vendor_name": "ชื่อร้านค้า / บริษัทผู้รับเงิน / ชื่อผู้รับโอน",
   "payer_name": "ชื่อผู้จ่ายเงิน / ผู้โอน (ถ้าอ่านได้ ถ้าไม่มีใส่ null)",
   "doc_date": "YYYY-MM-DD (แปลงปี พ.ศ. → ค.ศ. เช่น 2569 → 2026)",
-  "doc_no": "เลขที่เอกสาร / เลขอ้างอิง / Transaction ID (หรือ null)",
-  "items": [{"name": "รายการ", "amount": ตัวเลข}],
-  "subtotal": ตัวเลขก่อน VAT,
-  "vat_amount": ตัวเลข VAT 7% (0 ถ้าไม่มี),
-  "total_amount": ตัวเลขยอดรวมสุดท้าย,
+  "doc_no": "เลขที่เอกสาร / Transaction ID (หรือ null)",
+  "items": [{"name": "รายการสินค้า/บริการ", "amount": 0}],
+  "subtotal": 0,
+  "vat_amount": 0,
+  "total_amount": 0,
   "category": "วัตถุดิบ | ค่าเช่า | เงินเดือน | ค่าน้ำ-ไฟ | ค่าเดินทาง | วัสดุสำนักงาน | การตลาด | รายได้ | อื่น ๆ",
-  "confidence": 0.0-1.0,
-  "notes": "ข้อสังเกต เช่น รูปเบลอ / ข้อมูลไม่ครบ / สลิปยืนยันการรับเงิน"
+  "confidence": 0.95,
+  "notes": "ข้อสังเกต เช่น รูปเบลอ ข้อมูลไม่ครบ"
 }
 
-กฎการแปลงวันที่ไทย:
-- 21/2/69 หรือ 21 ก.พ. 69 = 2026-02-21 (พ.ศ. 2569 = ค.ศ. 2026)
-- ถ้าปีเป็น 2 หลัก: ถ้า < 70 บวก 2500 → พ.ศ. แล้วลบ 543
-- เวลา: ไม่ต้องใส่ใน date field
+กฎสำคัญ:
+- วันที่ไทย: 21/2/69 หรือ 21 ก.พ. 69 = 2026-02-21 (พ.ศ. 2569 = ค.ศ. 2026)
+- ปี 2 หลัก < 70: บวก 2500 ได้ พ.ศ. แล้วลบ 543
+- สลิปโอน: vendor_name = ผู้รับ, payer_name = ผู้โอน, vat_amount = 0
+- ถ้าอ่านรูปไม่ชัด: ใส่ข้อมูลที่อ่านได้ confidence ต่ำ อย่าปฏิเสธ`
 
-สำหรับ สลิปโอนเงิน:
-- vendor_name = ชื่อบัญชีผู้รับ
-- payer_name = ชื่อบัญชีผู้โอน  
-- total_amount = ยอดที่โอน
-- vat_amount = 0 (การโอนเงินไม่มี VAT)
-- doc_no = เลขอ้างอิงการโอน
+    // ── Call Gemini 2.0 Flash ─────────────────────────────────
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
 
-ถ้ารูปไม่ชัดหรืออ่านบางส่วนไม่ได้ ให้ใส่ข้อมูลที่อ่านได้ และ confidence ต่ำ อย่าปฏิเสธการวิเคราะห์`
-
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: [
+        contents: [{
+          parts: [
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType || 'image/jpeg',
+              inline_data: {
+                mime_type: mediaType || 'image/jpeg',
                 data: imageBase64,
               }
             },
-            { type: 'text', text: prompt }
+            { text: prompt }
           ]
-        }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        }
       })
     })
 
-    if (!claudeRes.ok) {
-      const err = await claudeRes.text()
-      console.error('Claude API error:', claudeRes.status, err)
+    if (!geminiRes.ok) {
+      const err = await geminiRes.text()
+      console.error('Gemini API error:', geminiRes.status, err)
       return new Response(
-        JSON.stringify({ error: 'Claude API error', status: claudeRes.status, detail: err }),
-        { status: claudeRes.status, headers: corsHeaders }
+        JSON.stringify({ error: 'Gemini API error', status: geminiRes.status, detail: err }),
+        { status: geminiRes.status, headers: corsHeaders(req) }
       )
     }
 
-    const data = await claudeRes.json()
-    const text = data.content?.[0]?.text || ''
+    const geminiData = await geminiRes.json()
+    const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
-    // strip markdown code fences if present
-    const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+    // strip markdown fences if Gemini wraps in ```json ... ```
+    const clean = text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim()
 
     try {
       const result = JSON.parse(clean)
       return new Response(
         JSON.stringify({ success: true, data: result }),
-        { status: 200, headers: corsHeaders }
+        { status: 200, headers: corsHeaders(req) }
       )
-    } catch (e) {
+    } catch (parseErr) {
       console.error('JSON parse failed:', clean)
       return new Response(
-        JSON.stringify({ success: false, raw: text, parseError: e.message }),
-        { status: 200, headers: corsHeaders }
+        JSON.stringify({ success: false, raw: text, parseError: parseErr.message }),
+        { status: 200, headers: corsHeaders(req) }
       )
     }
 
   } catch (e) {
-    console.error('OCR proxy error:', e)
+    console.error('OCR handler error:', e)
     return new Response(
       JSON.stringify({ error: e.message }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders(req) }
     )
+  }
+}
+
+function corsHeaders(req) {
+  const origin = req?.headers?.get('origin') || ''
+  const allowed = [
+    'https://billdeeline.vercel.app',
+    'https://liff.line.me',
+    'http://localhost:3000',
+  ]
+  return {
+    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
   }
 }
