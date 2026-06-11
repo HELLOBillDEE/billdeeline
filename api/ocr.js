@@ -68,8 +68,8 @@ export default async function handler(req) {
 - สลิปโอน: vendor_name = ผู้รับ, payer_name = ผู้โอน, vat_amount = 0
 - ถ้าอ่านรูปไม่ชัด: ใส่ข้อมูลที่อ่านได้ confidence ต่ำ อย่าปฏิเสธ`
 
-    // ── Call Gemini 2.0 Flash ─────────────────────────────────
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    // ── Call Gemini 1.5 Flash ─────────────────────────────────
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
 
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
