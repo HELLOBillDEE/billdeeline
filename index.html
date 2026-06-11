@@ -161,6 +161,35 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .pop-badge{position:absolute;top:-11px;right:16px;background:var(--grad);color:#fff;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:99px}
 .feat{display:flex;align-items:center;gap:9px;font-size:13px}
 .feat.off{opacity:.38}
+/* EMAIL AUTH TABS */
+.ltabs{display:flex;background:rgba(255,255,255,.15);border-radius:12px;padding:3px;gap:3px;margin-bottom:14px}
+.ltab{flex:1;height:38px;border:none;border-radius:9px;font-size:13.5px;font-weight:700;font-family:inherit;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .15s}
+.ltab.on{background:rgba(255,255,255,.95);color:var(--ink)}
+.e-inp{width:100%;padding:13px 15px;border:none;border-radius:13px;font-size:15px;background:rgba(255,255,255,.16);color:#fff;outline:none;font-family:inherit;margin-bottom:10px;transition:.15s}
+.e-inp::placeholder{color:rgba(255,255,255,.5)}
+.e-inp:focus{background:rgba(255,255,255,.26)}
+.btn-wh{height:52px;border-radius:15px;background:#fff;color:var(--t700);border:none;width:100%;font-size:15.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .12s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-wh:active{transform:scale(.975)}
+.btn-wh:disabled{opacity:.5}
+/* BIZ SWITCHER */
+.bsw-row{background:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .12s;border:2px solid transparent;margin-bottom:10px}
+.bsw-row.cur{border-color:var(--t500);background:var(--t50)}
+.bsw-row:active{transform:scale(.98)}
+/* INVITE */
+.code-display{background:var(--t50);border:2px dashed var(--t300);border-radius:16px;padding:18px;text-align:center;cursor:pointer;transition:background .15s}
+.code-display:active{background:var(--t300)}
+/* PDF */
+#pdf-wrap{display:none;position:fixed;inset:0;background:#fff;z-index:200;flex-direction:column}
+#pdf-wrap.on{display:flex}
+.pdf-pg{width:100%;max-width:740px;margin:0 auto;padding:12mm 10mm;font-size:9pt;color:#000;line-height:1.5}
+.pdf-logo{font-size:20pt;font-weight:800;color:#0e9aa7;letter-spacing:-.5px}
+.pdf-table{width:100%;border-collapse:collapse;font-size:8.5pt;margin-top:8px}
+.pdf-table th{background:#0e9aa7;color:#fff;padding:6px 8px;text-align:left;font-weight:600;font-size:8pt}
+.pdf-table td{padding:5px 8px;border-bottom:1px solid #e4eef0}
+.pdf-table tr:nth-child(even) td{background:#f8fcfd}
+.pdf-inc{color:#16a06f;font-weight:600}
+.pdf-exp{color:#e25563}
+@media print{body>*:not(#pdf-wrap){display:none!important}#pdf-wrap{display:flex!important}.pdf-no-print{display:none!important}}
 .fic{width:19px;height:19px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 
 /* MORE */
@@ -213,10 +242,19 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     </div>
   </div>
   <div class="login-foot">
-    <button class="btn-line" id="btn-login">
-      <span id="line-ic"></span>
-      <span id="btn-login-txt">เข้าสู่ระบบด้วย LINE</span>
-    </button>
+    <div class="ltabs">
+      <button class="ltab on" id="lt-line" onclick="setLoginTab('line')">LINE Login</button>
+      <button class="ltab" id="lt-email" onclick="setLoginTab('email')">Email / Password</button>
+    </div>
+    <div id="lf-line">
+      <button class="btn-line" id="btn-login"><span id="line-ic"></span><span id="btn-login-txt">เข้าสู่ระบบด้วย LINE</span></button>
+    </div>
+    <div id="lf-email" style="display:none;flex-direction:column">
+      <input class="e-inp" id="lg-email" type="email" placeholder="อีเมล" autocomplete="email"/>
+      <input class="e-inp" id="lg-pass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"/>
+      <button class="btn-wh" id="btn-email-login" onclick="loginEmail()">เข้าสู่ระบบ</button>
+      <button onclick="showScreen('s-register')" style="background:none;border:none;color:rgba(255,255,255,.8);font-size:13.5px;font-weight:600;font-family:inherit;margin-top:11px;cursor:pointer">ยังไม่มีบัญชี? สมัครใช้งานใหม่ →</button>
+    </div>
     <p style="font-size:11.5px;opacity:.72;text-align:center;margin-top:13px;line-height:1.6">การเข้าใช้งานถือว่ายอมรับ <u>ข้อกำหนดการใช้บริการ</u> และ <u>นโยบายความเป็นส่วนตัว</u></p>
   </div>
 </div>
@@ -313,7 +351,11 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="tab-p" id="tab-report">
       <div style="padding:8px 16px 14px;display:flex;align-items:center;justify-content:space-between">
         <div><div style="font-size:18px;font-weight:800">รายงานสรุป</div><div style="font-size:12px;color:var(--i3)">ภาพรวมการเงินของกิจการ</div></div>
-        <button class="ic-btn" onclick="downloadCSV()" id="csv-btn" title="ส่งออก CSV"></button>
+        <div style="display:flex;gap:8px">
+          <button class="ic-btn" onclick="copyReport()" id="copy-btn" title="Copy ส่ง LINE"></button>
+          <button class="ic-btn" onclick="openPDF()" id="pdf-btn" title="PDF Statement"></button>
+          <button class="ic-btn" onclick="downloadCSV()" id="csv-btn" title="ส่งออก CSV"></button>
+        </div>
       </div>
       <div class="sgrid" id="r-stats"></div>
       <div style="margin:14px 18px 0" class="card">
@@ -519,6 +561,86 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- REGISTER -->
+<div class="bd-s" id="s-register" style="background:var(--grad);color:#fff;overflow:hidden;position:relative">
+  <div class="lb" style="width:220px;height:220px;top:-80px;right:-60px"></div>
+  <div style="padding:max(52px,env(safe-area-inset-top,52px)) 24px 0;display:flex;align-items:center;gap:10px;position:relative;z-index:2;flex-shrink:0">
+    <button onclick="showScreen('s-login')" style="width:38px;height:38px;border-radius:12px;border:none;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;cursor:pointer" id="rg-bk"></button>
+    <span style="font-size:18px;font-weight:800">สมัครใช้งาน BillDEE</span>
+  </div>
+  <div class="scroll" style="flex:1;padding:20px 24px 40px;position:relative;z-index:2">
+    <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:18px;margin-bottom:14px">
+      <div style="font-size:12.5px;opacity:.8;margin-bottom:12px">บัญชีผู้ใช้</div>
+      <input class="e-inp" id="rg-name" type="text" placeholder="ชื่อ-สกุล *" autocomplete="name"/>
+      <input class="e-inp" id="rg-email" type="email" placeholder="อีเมล *" autocomplete="email"/>
+      <input class="e-inp" id="rg-pass" type="password" placeholder="รหัสผ่าน (6 ตัวขึ้นไป) *" autocomplete="new-password"/>
+      <input class="e-inp" id="rg-pass2" type="password" placeholder="ยืนยันรหัสผ่าน *" style="margin-bottom:0" autocomplete="new-password"/>
+    </div>
+    <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:18px;margin-bottom:18px">
+      <div style="font-size:12.5px;opacity:.8;margin-bottom:12px">ชื่อกิจการ (ตั้งภายหลังได้)</div>
+      <input class="e-inp" id="rg-biz" type="text" placeholder="ชื่อร้าน / กิจการ" style="margin-bottom:0"/>
+    </div>
+    <button class="btn-wh" onclick="registerEmail()" id="btn-register">สมัครใช้งาน</button>
+    <p style="font-size:12px;opacity:.72;text-align:center;margin-top:12px;line-height:1.6">มีบัญชีแล้ว? <u style="cursor:pointer" onclick="showScreen('s-login')">เข้าสู่ระบบ</u></p>
+  </div>
+</div>
+
+<!-- BIZ SWITCHER -->
+<div class="bd-ov" id="s-biz-sw" style="background:rgba(0,0,0,.55);justify-content:flex-end;z-index:80">
+  <div style="background:var(--bg);border-radius:26px 26px 0 0;padding:22px 18px calc(env(safe-area-inset-bottom,0px)+24px)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:800">เลือกกิจการ</div>
+      <button class="ic-btn" onclick="closeOv('s-biz-sw')" id="bsw-x"></button>
+    </div>
+    <div id="biz-sw-list"></div>
+    <button class="btn btn-g" onclick="addNewBiz()" style="margin-top:6px;height:46px;font-size:14.5px">+ เพิ่มกิจการใหม่</button>
+  </div>
+</div>
+
+<!-- INVITE -->
+<div class="bd-ov" id="s-invite">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-invite')" id="inv-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">เชิญสมาชิก</div><div style="font-size:12px;color:var(--i3)">แชร์โค้ดให้ทีมของคุณ</div></div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;color:var(--i2);margin-bottom:10px">โค้ดเชิญ (หมดอายุใน 7 วัน)</div>
+      <div class="code-display" onclick="copyInviteCode()">
+        <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:var(--t700)" id="inv-code">———</div>
+        <div style="font-size:12px;color:var(--i3);margin-top:6px">แตะเพื่อคัดลอก</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn btn-g btn-sm" style="flex:1" onclick="genNewInvite()" id="inv-regen"></button>
+        <button class="btn btn-p btn-sm" style="flex:1" onclick="copyInviteCode()" id="inv-copy"></button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">เข้าร่วมด้วยโค้ด</div>
+      <div class="fl-w" style="margin-bottom:10px"><input class="fl-in" id="join-code" placeholder="ใส่โค้ด 6 ตัว" style="text-transform:uppercase;letter-spacing:4px;font-size:20px;font-weight:800"/></div>
+      <button class="btn btn-p btn-sm" onclick="joinByCode()" id="inv-join"></button>
+    </div>
+    <div class="card" style="margin-bottom:14px;background:#fffbf0;border:1.5px solid #fde68a">
+      <div style="font-size:12.5px;color:#92400e;line-height:1.6">⚡ <b>LINE Notify</b> — แจ้งเตือนผ่าน LINE เมื่อมีรายการใหม่ สรุปรายวัน/รายเดือน<br/>ต้องการ Vercel Cron Job + LINE Notify Token — เร็วๆ นี้</div>
+      <div style="margin-top:10px"><div class="fl-lbl">LINE Notify Token</div><div class="fl-w"><input class="fl-in" id="bz-lnotify" placeholder="วาง token จาก notify.line.me" style="font-size:13px"/></div></div>
+      <button class="btn btn-p btn-sm" style="margin-top:10px" onclick="saveLINENotify()" id="btn-lnotify"></button>
+    </div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
+<!-- PDF WRAP -->
+<div id="pdf-wrap">
+  <div class="pdf-no-print" style="background:#0f2a30;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:max(12px,env(safe-area-inset-top,12px)) 18px 14px;flex-shrink:0">
+    <button onclick="closePDF()" style="border:none;background:rgba(255,255,255,.15);color:#fff;width:38px;height:38px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center" id="pdf-x"></button>
+    <div style="font-weight:700;font-size:15px">ดูตัวอย่างรายงาน</div>
+    <button onclick="printPDF()" style="border:none;background:var(--t500);color:#fff;height:38px;padding:0 16px;border-radius:11px;cursor:pointer;font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;font-family:inherit" id="pdf-print-btn"></button>
+  </div>
+  <div style="flex:1;overflow-y:auto;background:#e8eaed">
+    <div id="pdf-content" style="padding:16px"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"><div class="t-ic-wrap" id="ti"></div><span id="tm"></span></div>
 
@@ -577,7 +699,7 @@ const S={uid:null,bizId:null,biz:null,txns:[],tab:'home',flt:'all',
   selPlan:'smart',cycle:'monthly',
   eMode:'new',eTxnId:null,hasVAT:false,eKind:'expense',selCat:'วัตถุดิบ',
   ocrRes:null,ocrCat:'วัตถุดิบ',ocrImage:null,ocrImageType:null,
-  bizVAT:false,pendProf:null};
+  bizVAT:false,pendProf:null,authType:'line',allBiz:[],inviteCode:null};
 
 // ── SUPABASE ──────────────────────────────────────────────────
 let sb;
@@ -692,6 +814,17 @@ function paintIcons(){
   // Google Drive icon (Google colors)
   si('bz-gdrive-ic',`<svg width="22" height="22" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>`);
   si('csv-btn',ic('doc',20,'#0f2a30'));
+  si('copy-btn',ic('line',20,'#0f2a30'));
+  si('pdf-btn',ic('receipt',20,'#e25563'));
+  si('bsw-x',ic('x',20,'#0f2a30'));
+  si('inv-bk',ic('chevL',22,'#0f2a30'));
+  si('inv-regen',`${ic('flash',16,'#0b7c87')}สร้างโค้ดใหม่`);
+  si('inv-copy',`${ic('check',16,'#fff')}คัดลอก`);
+  si('inv-join',`${ic('check',16,'#fff')}เข้าร่วม`);
+  si('btn-lnotify',`${ic('bell',16,'#fff')}บันทึก Token`);
+  if($('rg-bk'))$('rg-bk').innerHTML=ic('chevL',20,'rgba(255,255,255,.9)');
+  if($('pdf-x'))$('pdf-x').innerHTML=ic('x',20,'#fff');
+  if($('pdf-print-btn'))$('pdf-print-btn').innerHTML='🖨 พิมพ์ / Save PDF';
   // subscribe
   si('sub-bk',ic('chevL',22,'#0f2a30'));si('sub-trust',`${ic('shield',16,'#8aa3a8')}<span>ยกเลิกได้ทุกเมื่อ · ชำระผ่าน LINE Pay</span>`);
   // logout
@@ -702,34 +835,71 @@ function paintIcons(){
 
 async function init(){
   initSB();paintIcons();
+  // 1) ตรวจ Supabase Auth session (ผู้ใช้ email)
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session){
+      S.uid=session.user.id;S.authType='email';
+      await loadBizForEmailUser(session.user);
+      if(S.bizId){showScreen('s-main');renderMain();loadTxns();}
+      return;
+    }
+  }catch(e){console.warn('session check:',e)}
+  // 2) LIFF (LINE users)
   try{
     await liff.init({liffId:CFG.LIFF_ID});
     if(!liff.isLoggedIn()){showScreen('s-login');return}
     const p=await liff.getProfile();
-    S.uid=p.userId;
+    S.uid=p.userId;S.authType='line';
     await loadOrCreateBiz(p);
-    showScreen('s-main');
-    renderMain();loadTxns();
+    showScreen('s-main');renderMain();loadTxns();
   }catch(e){console.error('init',e);showScreen('s-login')}
 }
 
 async function loadOrCreateBiz(profile){
   const{data}=await sb.from('businesses').select('*').eq('line_user_id',S.uid).single();
   if(!data){S.pendProf=profile;showScreen('s-onboard');await new Promise(r=>{window.__obDone=r})}
-  else{S.biz=data;S.bizId=data.id;S.bizVAT=data.vat||false}
+  else{S.biz=data;S.bizId=data.id;S.bizVAT=data.vat||false;S.allBiz=[data]}
+}
+
+async function loadBizForEmailUser(user){
+  const{data:members}=await sb.from('business_members').select('*, businesses(*)').eq('user_id',S.uid);
+  S.allBiz=(members||[]).map(m=>m.businesses).filter(Boolean);
+  if(S.allBiz.length===0){
+    S.pendProf={userId:S.uid,displayName:user.user_metadata?.display_name||user.email,pictureUrl:''};
+    showScreen('s-onboard');
+    await new Promise(r=>{window.__obDone=r});
+  }else if(S.allBiz.length===1){
+    S.biz=S.allBiz[0];S.bizId=S.allBiz[0].id;S.bizVAT=S.allBiz[0].vat||false;
+  }else{
+    S.biz=S.allBiz[0];S.bizId=S.allBiz[0].id;S.bizVAT=S.allBiz[0].vat||false;
+    setTimeout(()=>openBizSwitcher(),400);
+  }
 }
 
 async function createBiz(){
   const name=($('ob-name').value||'').trim();
   if(!name){alert('กรุณาใส่ชื่อกิจการ');return}
   $('btn-ob').disabled=true;
-  const{data,error}=await sb.from('businesses').upsert({
-    line_user_id:S.uid,display_name:S.pendProf?.displayName||'',picture_url:S.pendProf?.pictureUrl||'',
-    name,tax_id:$('ob-taxid').value.trim(),type:$('ob-type').value,plan:'basic'
-  },{onConflict:'line_user_id'}).select().single();
+  let data,error;
+  if(S.authType==='email'){
+    const r=await sb.from('businesses').insert({
+      name,tax_id:$('ob-taxid').value.trim(),type:$('ob-type').value,plan:'basic',
+      display_name:S.pendProf?.displayName||''
+    }).select().single();
+    data=r.data;error=r.error;
+    if(!error&&data)await sb.from('business_members').insert({business_id:data.id,user_id:S.uid,role:'owner'});
+  }else{
+    const r=await sb.from('businesses').upsert({
+      line_user_id:S.uid,display_name:S.pendProf?.displayName||'',picture_url:S.pendProf?.pictureUrl||'',
+      name,tax_id:$('ob-taxid').value.trim(),type:$('ob-type').value,plan:'basic'
+    },{onConflict:'line_user_id'}).select().single();
+    data=r.data;error=r.error;
+  }
   $('btn-ob').disabled=false;
   if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
   S.biz=data;S.bizId=data.id;
+  S.allBiz=[...(S.allBiz||[]),data];
   if(window.__obDone){window.__obDone();window.__obDone=null}
   showScreen('s-main');renderMain();loadTxns();
 }
@@ -853,10 +1023,10 @@ function renderMore(){
     <div style="background:rgba(255,255,255,.22);border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:700">จัดการ</div>
   </div>`);
   const menu=[
-    {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี ที่อยู่',fn:'openBiz()'},
+    {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี Google Drive',fn:'openBiz()'},
+    {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
+    {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'doc',l:'เอกสารภาษี',s:'บิลซื้อ-บิลขาย รายงาน VAT',fn:"toast('เร็วๆ นี้ใน Smart/Pro')"},
-    {i:'sparkle',l:'ผู้ช่วย AI',s:'ถาม-ตอบเรื่องบัญชีและภาษี',fn:"toast('เร็วๆ นี้')"},
-    {i:'user',l:'ผู้ใช้งานในทีม',s:'จัดการสิทธิ์การเข้าถึง',fn:"toast('มีใน Pro')"},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
   ];
   si('more-menu',`<div style="padding:4px 0">${menu.map((m,i)=>`<button class="mnu-btn" onclick="${m.fn}" style="${i<menu.length-1?'border-bottom:1px solid var(--ln)':''}">
@@ -1147,6 +1317,192 @@ async function applyPlan(){
   S.biz.plan=S.selPlan;closeOv('s-sub');renderMore();toast(`อัปเกรดเป็น ${p.name} แล้ว`);
 }
 
+// ── EMAIL AUTH ────────────────────────────────────────────────
+function setLoginTab(t){
+  const l=t==='line';
+  $('lt-line').className='ltab'+(l?' on':'');
+  $('lt-email').className='ltab'+(!l?' on':'');
+  $('lf-line').style.display=l?'block':'none';
+  $('lf-email').style.display=l?'none':'flex';
+}
+async function loginEmail(){
+  const email=($('lg-email').value||'').trim(),pass=$('lg-pass').value||'';
+  if(!email||!pass){alert('กรุณาใส่อีเมลและรหัสผ่าน');return}
+  const btn=$('btn-email-login');btn.disabled=true;btn.textContent='กำลังเข้าสู่ระบบ…';
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;btn.textContent='เข้าสู่ระบบ';
+  if(error){alert('เข้าสู่ระบบไม่สำเร็จ: '+error.message);return}
+  S.uid=data.user.id;S.authType='email';
+  await loadBizForEmailUser(data.user);
+  if(S.bizId){showScreen('s-main');renderMain();loadTxns();}
+}
+async function registerEmail(){
+  const name=($('rg-name').value||'').trim(),email=($('rg-email').value||'').trim();
+  const pass=$('rg-pass').value||'',pass2=$('rg-pass2').value||'';
+  if(!name||!email||!pass){alert('กรุณาใส่ข้อมูลให้ครบ');return}
+  if(pass!==pass2){alert('รหัสผ่านไม่ตรงกัน');return}
+  if(pass.length<6){alert('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');return}
+  const btn=$('btn-register');btn.disabled=true;btn.textContent='กำลังสมัคร…';
+  const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{display_name:name}}});
+  btn.disabled=false;btn.textContent='สมัครใช้งาน';
+  if(error){alert('สมัครไม่สำเร็จ: '+error.message);return}
+  if(!data.user){alert('กรุณาตรวจสอบอีเมลเพื่อยืนยันการสมัคร');return}
+  S.uid=data.user.id;S.authType='email';
+  S.pendProf={userId:S.uid,displayName:name,pictureUrl:''};
+  const bizName=($('rg-biz').value||'').trim()||name+"'s Business";
+  showScreen('s-onboard');
+  if($('ob-name'))$('ob-name').value=bizName;
+  await new Promise(r=>{window.__obDone=r});
+  showScreen('s-main');renderMain();loadTxns();
+}
+
+// ── BIZ SWITCHER ──────────────────────────────────────────────
+async function loadBizForEmailUser(user){
+  const{data:members}=await sb.from('business_members').select('*, businesses(*)').eq('user_id',S.uid);
+  S.allBiz=(members||[]).map(m=>m.businesses).filter(Boolean);
+  if(S.allBiz.length===0){
+    S.pendProf={userId:S.uid,displayName:user.user_metadata?.display_name||user.email,pictureUrl:''};
+    showScreen('s-onboard');
+    await new Promise(r=>{window.__obDone=r});
+  }else{
+    S.biz=S.allBiz[0];S.bizId=S.allBiz[0].id;S.bizVAT=S.allBiz[0].vat||false;
+    if(S.allBiz.length>1)setTimeout(()=>openBizSwitcher(),500);
+  }
+}
+function openBizSwitcher(){
+  si('biz-sw-list',S.allBiz.map(b=>`
+    <div class="bsw-row ${b.id===S.bizId?'cur':''}" onclick="switchBiz('${b.id}')">
+      <div style="width:42px;height:42px;border-radius:13px;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0">${(b.name||'บ').charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px">${esc(b.name||'')}</div>
+        <div style="font-size:12.5px;color:var(--i3)">${PLANS[b.plan||'basic']?.name||'Basic'} · ${esc(b.type||'ธุรกิจ')}</div>
+      </div>
+      ${b.id===S.bizId?ic('check',20,'var(--t600)'):''}
+    </div>`).join(''));
+  openOv('s-biz-sw');
+}
+async function switchBiz(id){
+  S.biz=S.allBiz.find(b=>b.id===id)||S.allBiz[0];
+  S.bizId=S.biz.id;S.bizVAT=S.biz.vat||false;
+  closeOv('s-biz-sw');renderMain();
+  await loadTxns();toast('เปลี่ยนเป็น '+S.biz.name);
+}
+function addNewBiz(){
+  closeOv('s-biz-sw');
+  S.pendProf={userId:S.uid,displayName:'',pictureUrl:''};
+  showScreen('s-onboard');
+}
+
+// ── INVITE ────────────────────────────────────────────────────
+async function openInvite(){
+  const{data}=await sb.from('invites').select('*').eq('business_id',S.bizId)
+    .eq('used',false).gte('expires_at',new Date().toISOString()).limit(1).single();
+  if(data){S.inviteCode=data.code;}
+  else{
+    const code=Math.random().toString(36).slice(2,8).toUpperCase();
+    const{data:n}=await sb.from('invites').insert({
+      business_id:S.bizId,code,
+      expires_at:new Date(Date.now()+7*24*60*60*1000).toISOString()
+    }).select().single();
+    S.inviteCode=n?.code||code;
+  }
+  si('inv-code',S.inviteCode||'—');
+  openOv('s-invite');
+}
+async function genNewInvite(){
+  const code=Math.random().toString(36).slice(2,8).toUpperCase();
+  await sb.from('invites').update({used:true}).eq('business_id',S.bizId).eq('used',false);
+  await sb.from('invites').insert({business_id:S.bizId,code,expires_at:new Date(Date.now()+7*24*60*60*1000).toISOString()});
+  S.inviteCode=code;si('inv-code',code);toast('สร้างโค้ดใหม่แล้ว');
+}
+function copyInviteCode(){
+  const msg=`📊 BillDEE — โค้ดเข้าร่วม: ${S.inviteCode}\nเปิดแอปแล้วไปที่ เพิ่มเติม → เชิญสมาชิก → ใส่โค้ดนี้`;
+  navigator.clipboard?.writeText(msg).then(()=>toast('คัดลอกโค้ดแล้ว')).catch(()=>prompt('คัดลอกโค้ด:',S.inviteCode));
+}
+async function joinByCode(){
+  const code=($('join-code').value||'').trim().toUpperCase();
+  if(!code){alert('กรุณาใส่โค้ด');return}
+  const{data:inv}=await sb.from('invites').select('*, businesses(*)').eq('code',code).eq('used',false).single();
+  if(!inv){alert('โค้ดไม่ถูกต้องหรือหมดอายุแล้ว');return}
+  await sb.from('business_members').upsert({business_id:inv.business_id,user_id:S.uid,role:inv.role||'staff'},{onConflict:'business_id,user_id'});
+  await sb.from('invites').update({used:true,used_by:S.uid}).eq('id',inv.id);
+  if(!S.allBiz.find(b=>b.id===inv.business_id))S.allBiz.push(inv.businesses);
+  closeOv('s-invite');toast('เข้าร่วม '+inv.businesses.name+' แล้ว');
+}
+async function saveLINENotify(){
+  const token=($('bz-lnotify')?.value||'').trim();
+  if(!token){alert('กรุณาใส่ LINE Notify Token');return}
+  await sb.from('businesses').update({line_notify_token:token}).eq('id',S.bizId);
+  if(S.biz)S.biz.line_notify_token=token;
+  toast('บันทึก LINE Notify Token แล้ว (ต้องตั้ง Cron Job เพิ่มเติม)');
+}
+
+// ── PDF ───────────────────────────────────────────────────────
+function openPDF(){
+  const inc=S.txns.filter(t=>t.kind==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const exp=S.txns.filter(t=>t.kind==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const vat=S.txns.filter(t=>t.has_vat).reduce((s,t)=>s+(+t.vat||0),0);
+  const rows=S.txns.map(t=>`<tr>
+    <td style="white-space:nowrap;font-size:8pt">${t.txn_date||'—'}</td>
+    <td>${esc(t.title||'—')}</td>
+    <td style="font-size:8pt">${esc(t.category||'—')}</td>
+    <td class="pdf-inc" style="text-align:right">${t.kind==='income'?'+฿'+fmt(t.amount):''}</td>
+    <td class="pdf-exp" style="text-align:right">${t.kind==='expense'?'฿'+fmt(t.amount):''}</td>
+    <td style="text-align:right;color:#888;font-size:8pt">${(+t.vat)>0?'฿'+fmt2(t.vat):''}</td>
+  </tr>`).join('');
+  const pd=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  si('pdf-content',`<div class="pdf-pg">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0e9aa7;padding-bottom:12px;margin-bottom:14px">
+      <div><div class="pdf-logo">Bill<span style="color:#46666c">DEE</span></div><div style="font-size:7pt;color:#888">AI Accounting Assistant</div></div>
+      <div style="text-align:right;font-size:8.5pt">
+        <div style="font-size:12pt;font-weight:700">${esc(S.biz?.name||'')}</div>
+        ${S.biz?.tax_id?`<div style="color:#666">เลขภาษี ${S.biz.tax_id}</div>`:''}
+        ${S.biz?.address?`<div style="color:#888;font-size:7.5pt">${esc(S.biz.address)}</div>`:''}
+        ${S.biz?.phone?`<div style="color:#666">โทร ${S.biz.phone}</div>`:''}
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:13pt;font-weight:800">รายงานรายรับ-รายจ่าย</div>
+      <div style="font-size:9pt;color:#666">ประจำเดือน ${nowMonth()} &nbsp;·&nbsp; พิมพ์เมื่อ ${pd}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1;border:1.5px solid #0e9aa7;border-radius:8px;padding:8px 10px;text-align:center"><div style="font-size:7.5pt;color:#666">รายรับรวม</div><div style="font-size:11pt;font-weight:700;color:#16a06f">฿${fmt(inc)}</div></div>
+      <div style="flex:1;border:1.5px solid #e4eef0;border-radius:8px;padding:8px 10px;text-align:center"><div style="font-size:7.5pt;color:#666">รายจ่ายรวม</div><div style="font-size:11pt;font-weight:700">฿${fmt(exp)}</div></div>
+      <div style="flex:1;background:#0e9aa7;border-radius:8px;padding:8px 10px;text-align:center"><div style="font-size:7.5pt;color:rgba(255,255,255,.8)">กำไรสุทธิ</div><div style="font-size:11pt;font-weight:700;color:#fff">฿${fmt(inc-exp)}</div></div>
+      <div style="flex:1;border:1.5px solid #e4eef0;border-radius:8px;padding:8px 10px;text-align:center"><div style="font-size:7.5pt;color:#666">VAT สะสม</div><div style="font-size:11pt;font-weight:700;color:#f0a868">฿${fmt2(vat)}</div></div>
+    </div>
+    <table class="pdf-table">
+      <thead><tr>
+        <th style="width:80px">วันที่</th><th>รายละเอียด</th><th style="width:90px">หมวดหมู่</th>
+        <th style="width:75px;text-align:right">รายรับ (฿)</th><th style="width:75px;text-align:right">รายจ่าย (฿)</th><th style="width:60px;text-align:right">VAT (฿)</th>
+      </tr></thead>
+      <tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">ไม่มีรายการ</td></tr>'}</tbody>
+      <tfoot><tr style="background:#f0f8f9">
+        <td colspan="3" style="font-weight:700;text-align:right;padding:7px">รวมทั้งสิ้น</td>
+        <td style="font-weight:700;text-align:right;color:#16a06f">฿${fmt(inc)}</td>
+        <td style="font-weight:700;text-align:right">฿${fmt(exp)}</td>
+        <td style="text-align:right;color:#f0a868">฿${fmt2(vat)}</td>
+      </tr></tfoot>
+    </table>
+    <div style="margin-top:18px;padding-top:8px;border-top:1px solid #e4eef0;font-size:7.5pt;color:#999;text-align:center">สร้างโดย BillDEE AI Accounting Assistant · billdeeline.vercel.app</div>
+  </div>`);
+  sh('pdf-wrap');
+}
+function closePDF(){hd('pdf-wrap')}
+function printPDF(){window.print()}
+
+// ── COPY TEXT REPORT ──────────────────────────────────────────
+async function copyReport(){
+  const inc=S.txns.filter(t=>t.kind==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const exp=S.txns.filter(t=>t.kind==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const top5=S.txns.slice(0,5).map(t=>`  • ${t.txn_date||''} ${t.title||'—'} ${t.kind==='income'?'+':'−'}฿${fmt(t.amount)}`).join('\n');
+  const text=[`📊 รายงาน BillDEE`,`🏪 ${S.biz?.name||'กิจการ'}`,`📅 ${nowMonth()}`,``,
+    `💚 รายรับ   ฿${fmt(inc)}`,`📤 รายจ่าย  ฿${fmt(exp)}`,`💰 กำไร    ฿${fmt(inc-exp)}`,``,
+    `รายการล่าสุด:`,top5||'  (ยังไม่มีรายการ)',``,`— BillDEE AI —`].join('\n');
+  try{await navigator.clipboard.writeText(text);toast('คัดลอกรายงานแล้ว — วางใน LINE ได้เลย');}
+  catch(e){prompt('คัดลอกข้อความนี้:',text);}
+}
+
 // ── AUTH ──────────────────────────────────────────────────────
 $('btn-login').addEventListener('click',async function(){
   si('btn-login-txt','กำลังเชื่อมต่อ LINE…');this.disabled=true;
@@ -1161,7 +1517,11 @@ $('btn-login').addEventListener('click',async function(){
   }
   try{liff.login();}catch(e){si('btn-login-txt','เข้าสู่ระบบด้วย LINE');this.disabled=false;}
 });
-function logout(){if(!confirm('ออกจากระบบ?'))return;try{liff.logout();}catch(e){}location.reload()}
+function logout(){
+  if(!confirm('ออกจากระบบ?'))return;
+  if(S.authType==='email'){sb.auth.signOut().then(()=>location.reload());}
+  else{try{liff.logout();}catch(e){}location.reload();}
+}
 
 // ── BOOT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',init);
