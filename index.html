@@ -477,6 +477,17 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div style="flex:1"><div style="font-weight:700;font-size:15px">จดทะเบียน VAT</div><div style="font-size:12.5px;color:var(--i3)">คำนวณ VAT 7% ในเอกสารอัตโนมัติ</div></div>
       <button class="tgl t-off" id="bz-vat" onclick="togBizVAT()"><div class="tgl-k"></div></button>
     </div>
+    <!-- Google Drive -->
+    <div style="margin-top:14px;border-radius:18px;padding:16px 16px 14px;background:#fff;box-shadow:0 1px 2px rgba(15,42,48,.04),0 6px 22px -12px rgba(15,42,48,.12)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div id="bz-gdrive-ic" style="width:40px;height:40px;border-radius:12px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+        <div><div style="font-weight:700;font-size:15px">Google Drive</div><div style="font-size:12px;color:var(--i3);line-height:1.4">วางลิงก์โฟลเดอร์ที่ต้องการเก็บรูปบิล<br/>ลูกค้าจัดการ Drive เองทั้งหมด</div></div>
+      </div>
+      <div class="fl-lbl">ลิงก์ Google Drive Folder</div>
+      <div class="fl-w"><input class="fl-in" id="bz-gdrive" placeholder="https://drive.google.com/drive/folders/…" style="font-size:13px"/></div>
+      <div style="font-size:11.5px;color:var(--i3);margin-top:8px;line-height:1.5">💡 สร้างโฟลเดอร์ใน Drive → คัดลอกลิงก์ → วางที่นี่ · BillDEE จะไม่เก็บรูปในเซิร์ฟเวอร์ของเรา</div>
+      <button id="bz-gdrive-open" onclick="openGDrive()" style="display:none;margin-top:10px;width:100%;height:38px;border-radius:10px;border:none;background:#e8f0fe;color:#1a73e8;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer">เปิด Google Drive Folder →</button>
+    </div>
     <div style="height:16px"></div>
     <button class="btn btn-p" onclick="saveBiz()" id="save-biz-btn"></button>
     <div style="height:30px"></div>
@@ -671,6 +682,8 @@ function paintIcons(){
   si('bz1',ic('store',19,'#8aa3a8'));si('bz2',ic('doc',19,'#8aa3a8'));si('bz3',ic('user',19,'#8aa3a8'));
   si('bz4',ic('phone',19,'#8aa3a8'));si('bz5',ic('mail',19,'#8aa3a8'));si('bz6',ic('pin',19,'#8aa3a8'));
   si('biz-vat-ic',ic('receipt',21,'#0e9aa7'));si('save-biz-btn',`${ic('check',19,'#fff')}บันทึกข้อมูลธุรกิจ`);
+  // Google Drive icon (Google colors)
+  si('bz-gdrive-ic',`<svg width="22" height="22" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>`);
   // subscribe
   si('sub-bk',ic('chevL',22,'#0f2a30'));si('sub-trust',`${ic('shield',16,'#8aa3a8')}<span>ยกเลิกได้ทุกเมื่อ · ชำระผ่าน LINE Pay</span>`);
   // logout
@@ -892,9 +905,27 @@ function selOcrCat(c){S.ocrCat=c;
 async function saveFromOCR(){
   if(!S.bizId)return;
   const r=S.ocrRes;
-  const{error}=await sb.from('transactions').insert({business_id:S.bizId,kind:'expense',title:r?.vendor_name||'ใบเสร็จจาก AI',category:S.ocrCat,amount:r?.total_amount||0,vat:r?.vat_amount||0,has_vat:(r?.vat_amount||0)>0,txn_date:r?.doc_date||todayISO(),source:'scan'});
+  const row={
+    business_id:S.bizId,kind:'expense',
+    title:r?.vendor_name||'ใบเสร็จจาก AI',
+    category:S.ocrCat,
+    amount:r?.total_amount||0,
+    vat:r?.vat_amount||0,
+    has_vat:(r?.vat_amount||0)>0,
+    txn_date:r?.doc_date||todayISO(),
+    source:'scan',
+    ocr_data:r||null,
+    receipt_url:S.biz?.gdrive_folder_url||'',
+  };
+  const{error}=await sb.from('transactions').insert(row);
   if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
-  closeOv('s-ext');await loadTxns();toast(`บันทึกรายการ · ${S.ocrCat} แล้ว`);
+  closeOv('s-ext');await loadTxns();
+  // แนะนำบันทึกรูปลง Drive ถ้ามีการตั้งค่า
+  if(S.biz?.gdrive_folder_url){
+    toast(`บันทึกแล้ว · เปิด Drive เพื่อบันทึกรูปบิล`);
+  }else{
+    toast(`บันทึกรายการ · ${S.ocrCat} แล้ว`);
+  }
 }
 
 // ── ENTRY FORM ────────────────────────────────────────────────
@@ -956,17 +987,36 @@ function openBiz(){
   $('bz-name').value=S.biz.name||'';$('bz-taxid').value=S.biz.tax_id||'';
   $('bz-owner').value=S.biz.owner||'';$('bz-phone').value=S.biz.phone||'';
   $('bz-email').value=S.biz.email||'';$('bz-addr').value=S.biz.address||'';
+  $('bz-gdrive').value=S.biz.gdrive_folder_url||'';
+  // show open button if URL already set
+  const openBtn=$('bz-gdrive-open');
+  if(openBtn) openBtn.style.display=S.biz.gdrive_folder_url?'block':'none';
   S.bizVAT=S.biz.vat||false;
   $('bz-vat').className=`tgl ${S.bizVAT?'t-on':'t-off'}`;
   openOv('s-biz');
 }
 function togBizVAT(){S.bizVAT=!S.bizVAT;$('bz-vat').className=`tgl ${S.bizVAT?'t-on':'t-off'}`}
+function extractGDriveId(url){
+  const m=url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  return m?m[1]:'';
+}
+function openGDrive(){
+  const url=S.biz?.gdrive_folder_url;
+  if(url) window.open(url,'_blank');
+}
 async function saveBiz(){
   const name=($('bz-name').value||'').trim();if(!name){alert('กรุณาใส่ชื่อกิจการ');return}
-  const row={name,tax_id:$('bz-taxid').value,owner:$('bz-owner').value,phone:$('bz-phone').value,email:$('bz-email').value,address:$('bz-addr').value,vat:S.bizVAT};
+  const gdriveUrl=($('bz-gdrive').value||'').trim();
+  const gdriveId=extractGDriveId(gdriveUrl);
+  const row={name,tax_id:$('bz-taxid').value,owner:$('bz-owner').value,
+    phone:$('bz-phone').value,email:$('bz-email').value,address:$('bz-addr').value,
+    vat:S.bizVAT,gdrive_folder_url:gdriveUrl,gdrive_folder_id:gdriveId};
   const{data,error}=await sb.from('businesses').update(row).eq('id',S.bizId).select().single();
   if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
-  S.biz={...S.biz,...row};closeOv('s-biz');renderMain();renderMore();toast('บันทึกข้อมูลธุรกิจแล้ว');
+  S.biz={...S.biz,...row};
+  // show open button if URL set
+  const ob=$('bz-gdrive-open');if(ob)ob.style.display=gdriveUrl?'block':'none';
+  closeOv('s-biz');renderMain();renderMore();toast('บันทึกข้อมูลธุรกิจแล้ว');
 }
 
 // ── SUBSCRIBE ─────────────────────────────────────────────────
