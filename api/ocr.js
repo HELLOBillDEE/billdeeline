@@ -1,105 +1,153 @@
+// api/ocr.js — Vercel Edge Function
+// BillDEE AI OCR — Google Gemini Vision
+// ENV: GEMINI_API_KEY
 
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>BillDEE OCR Test</title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:600px;margin:40px auto;padding:0 20px;background:#f5f5f5}
-h2{color:#0e9aa7}
-.card{background:#fff;border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.btn{background:#0e9aa7;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;width:100%;margin-bottom:8px}
-.btn2{background:#f0f8f9;color:#0e9aa7;border:1.5px solid #0e9aa7}
-.btn:disabled{opacity:.5}
-pre{background:#f0f8f9;border-radius:10px;padding:14px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin-top:10px}
-.ok{color:#16a06f;font-weight:700}
-.err{color:#e25563;font-weight:700}
-input[type=file]{width:100%;padding:10px;border:2px dashed #ccc;border-radius:10px;margin-bottom:12px;box-sizing:border-box}
-</style>
-</head>
-<body>
-<h2>🧪 BillDEE OCR Debug</h2>
+export const config = { runtime: 'edge' }
 
-<div class="card">
-  <h3 style="margin:0 0 12px">Step 1 — ดู Models ที่ใช้ได้</h3>
-  <button class="btn btn2" onclick="listModels()">📋 ดูรายการ Gemini Models</button>
-  <pre id="list-res" style="display:none"></pre>
-</div>
+// ลองตามลำดับ — มีรูปทุกตัว
+const MODELS = [
+  { id:'gemini-pro-vision',      json:false },
+  { id:'gemini-1.0-pro-vision-latest', json:false },
+  { id:'gemini-1.5-flash-latest',      json:true  },
+  { id:'gemini-1.5-flash-001',         json:true  },
+  { id:'gemini-1.5-pro-latest',        json:true  },
+]
 
-<div class="card">
-  <h3 style="margin:0 0 12px">Step 2 — ทดสอบ OCR</h3>
-  <input type="file" id="img-in" accept="image/*"/>
-  <button class="btn" onclick="testOCR()" id="ocr-btn">📷 อ่านใบเสร็จ</button>
-  <pre id="ocr-res" style="display:none"></pre>
-</div>
+export default async function handler(req) {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: cors(req) })
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 })
 
-<div class="card" style="background:#fff8e1">
-  <b>ถ้าเจอ Error:</b>
-  <ul style="font-size:13px;line-height:1.9;color:#555;margin:8px 0 0">
-    <li><b>GEMINI_API_KEY not set</b> → Vercel → Settings → Env → เพิ่ม GEMINI_API_KEY</li>
-    <li><b>API_KEY_INVALID</b> → key ผิด → ตรวจที่ aistudio.google.com/apikey</li>
-    <li><b>ไม่พบ model</b> → กด Step 1 ก่อน แล้วส่งรายการให้ developer</li>
-    <li><b>Fetch failed</b> → ocr.js ยังไม่ได้ push ขึ้น GitHub</li>
-  </ul>
-</div>
+  try {
+    const body = await req.json()
+    const { imageBase64, mediaType, businessName, ownerName, taxId, _listModels } = body
 
-<script>
-const BASE = window.location.origin
-
-async function listModels(){
-  const el = document.getElementById('list-res')
-  el.style.display = 'block'
-  el.textContent = 'กำลังดึงรายการ…'
-  try{
-    const r = await fetch(`${BASE}/api/ocr`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ _listModels: true, imageBase64: 'dGVzdA==' })
-    })
-    const j = await r.json()
-    if(j.available){
-      el.innerHTML = `<span class="ok">✅ Models ที่ใช้ได้ (${j.available.length} รายการ):</span>\n\n${j.available.map(m=>'• '+m).join('\n')}`
-    } else {
-      el.innerHTML = `<span class="err">❌ Error</span>\n\n${JSON.stringify(j,null,2)}`
+    // ── List available models (debug mode) ────────────────────
+    if (_listModels) {
+      const apiKey = process.env.GEMINI_API_KEY
+      if (!apiKey) return new Response(JSON.stringify({ error: 'No GEMINI_API_KEY' }), { status: 500, headers: cors(req) })
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+      const d = await r.json()
+      const vision = (d.models || []).filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
+        .map(m => m.name)
+      return new Response(JSON.stringify({ available: vision, raw: d }), { status: 200, headers: cors(req) })
     }
-  }catch(e){
-    el.innerHTML = `<span class="err">❌ Fetch failed: ${e.message}</span>\n\nocr.js ยังไม่ได้ push หรือ Vercel ยัง deploy ไม่เสร็จ`
-  }
-}
 
-async function testOCR(){
-  const file = document.getElementById('img-in').files[0]
-  if(!file){alert('เลือกรูปก่อน');return}
-  const btn = document.getElementById('ocr-btn')
-  const el = document.getElementById('ocr-res')
-  btn.disabled = true; btn.textContent = 'กำลังอ่าน…'
-  el.style.display = 'block'; el.textContent = 'กำลังส่งรูปไป Gemini…'
-  try{
-    const b64 = await toBase64(file)
-    const r = await fetch(`${BASE}/api/ocr`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        imageBase64: b64.split(',')[1],
-        mediaType: file.type,
-        businessName: 'ร้านทดสอบ',
-        ownerName: 'คุณทดสอบ'
+    if (!imageBase64) return new Response(
+      JSON.stringify({ error: 'imageBase64 is required' }),
+      { status: 400, headers: cors(req) }
+    )
+
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) return new Response(
+      JSON.stringify({ error: 'GEMINI_API_KEY not set in Vercel Environment Variables' }),
+      { status: 500, headers: cors(req) }
+    )
+
+    const bizCtx = businessName
+      ? `\nกิจการ: "${businessName}"${ownerName ? ` เจ้าของ: "${ownerName}"` : ''}${taxId ? ` เลขภาษี: ${taxId}` : ''}`
+      : ''
+
+    const prompt = `คุณคือผู้เชี่ยวชาญด้านบัญชีและภาษีไทย${bizCtx}
+
+อ่านข้อมูลจากภาพ ซึ่งอาจเป็น ใบเสร็จ / Tax Invoice / สลิปโอนเงิน / บิลค่าน้ำ-ไฟ / ใบแจ้งหนี้
+
+ตอบเป็น JSON เท่านั้น ห้ามมี markdown ห้ามมีข้อความอื่น:
+{
+  "doc_type": "receipt | tax_invoice | transfer_slip | bill | invoice | other",
+  "vendor_name": "ชื่อร้านค้า / บริษัทผู้รับเงิน",
+  "payer_name": "ชื่อผู้จ่าย / ผู้โอน (null ถ้าไม่มี)",
+  "doc_date": "YYYY-MM-DD (พ.ศ. 2569 = ค.ศ. 2026)",
+  "doc_no": "เลขเอกสาร (null ถ้าไม่มี)",
+  "items": [{"name": "รายการ", "amount": 0}],
+  "subtotal": 0,
+  "vat_amount": 0,
+  "total_amount": 0,
+  "category": "วัตถุดิบ | ค่าเช่า | เงินเดือน | ค่าน้ำ-ไฟ | ค่าเดินทาง | วัสดุสำนักงาน | การตลาด | รายได้ | อื่น ๆ",
+  "confidence": 0.95,
+  "notes": "ข้อสังเกต"
+}
+กฎ: พ.ศ. 2569 = ค.ศ. 2026, สลิปโอน vat=0, ถ้าอ่านไม่ชัดอย่าปฏิเสธ`
+
+    const tried = []
+    for (const { id: model, json: supportsJson } of MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+
+      const genCfg = supportsJson
+        ? { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: 'application/json' }
+        : { temperature: 0.1, maxOutputTokens: 1024 }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
+            { text: prompt }
+          ]}],
+          generationConfig: genCfg
+        })
       })
-    })
-    const j = await r.json()
-    if(j.success){
-      el.innerHTML = `<span class="ok">✅ อ่านสำเร็จ! model: ${j.data?._model} · confidence: ${Math.round((j.data?.confidence||0)*100)}%</span>\n\n${JSON.stringify(j.data,null,2)}`
-    } else {
-      el.innerHTML = `<span class="err">❌ ล้มเหลว</span>\n\n${JSON.stringify(j,null,2)}`
+
+      if (res.status === 404) { tried.push(`${model}: 404`); continue }
+
+      if (!res.ok) {
+        const err = await res.text()
+        // ถ้า model นี้ error ให้ลอง model ถัดไปแทนที่จะหยุด
+        tried.push(`${model}: ${res.status}`); continue
+      }
+
+      const data = await res.json()
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+      // strip markdown fences
+      const clean = text.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim()
+
+      // ลอง parse JSON
+      try {
+        const result = JSON.parse(clean)
+        result._model = model
+        return new Response(
+          JSON.stringify({ success: true, data: result }),
+          { status: 200, headers: cors(req) }
+        )
+      } catch (e) {
+        // JSON parse ล้มเหลว — ลอง extract JSON object จากข้อความ
+        const match = clean.match(/\{[\s\S]*\}/)
+        if (match) {
+          try {
+            const result = JSON.parse(match[0])
+            result._model = model
+            return new Response(
+              JSON.stringify({ success: true, data: result }),
+              { status: 200, headers: cors(req) }
+            )
+          } catch {}
+        }
+        // ยังไม่ได้เลย — return raw text ให้ debug
+        return new Response(
+          JSON.stringify({ success: false, raw: text, parseError: e.message, model }),
+          { status: 200, headers: cors(req) }
+        )
+      }
     }
-  }catch(e){
-    el.innerHTML = `<span class="err">❌ ${e.message}</span>`
+
+    return new Response(
+      JSON.stringify({ error: 'ไม่พบ Gemini model ที่ใช้ได้', tried }),
+      { status: 404, headers: cors(req) }
+    )
+
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: cors(req) })
   }
-  btn.disabled = false; btn.textContent = '📷 อ่านใบเสร็จ'
 }
 
-function toBase64(f){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsDataURL(f)})}
-</script>
-</body>
-</html>
+function cors(req) {
+  const origin = req?.headers?.get('origin') || ''
+  const allowed = ['https://billdeeline.vercel.app','https://liff.line.me','http://localhost:3000']
+  return {
+    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  }
+}
