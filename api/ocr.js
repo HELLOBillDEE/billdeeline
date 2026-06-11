@@ -84,7 +84,9 @@ export default async function handler(req) {
             { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
             { text: prompt }
           ]}],
-          generationConfig: genCfg
+          generationConfig: genCfg.responseMimeType
+            ? { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: genCfg.responseMimeType }
+            : { temperature: 0.1, maxOutputTokens: 8192 }
         })
       })
 
