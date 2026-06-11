@@ -4,13 +4,13 @@
 
 export const config = { runtime: 'edge' }
 
-// ลองตามลำดับ — มีรูปทุกตัว
+// ลองตามลำดับ — ใช้ models ที่มีใน API key นี้จริง
 const MODELS = [
-  { id:'gemini-pro-vision',      json:false },
-  { id:'gemini-1.0-pro-vision-latest', json:false },
-  { id:'gemini-1.5-flash-latest',      json:true  },
-  { id:'gemini-1.5-flash-001',         json:true  },
-  { id:'gemini-1.5-pro-latest',        json:true  },
+  { id:'gemini-2.0-flash',       json:true },
+  { id:'gemini-2.0-flash-001',   json:true },
+  { id:'gemini-2.5-flash',       json:true },
+  { id:'gemini-2.5-flash-image', json:true },
+  { id:'gemini-flash-latest',    json:true },
 ]
 
 export default async function handler(req) {
