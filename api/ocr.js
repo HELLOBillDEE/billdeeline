@@ -69,7 +69,7 @@ export default async function handler(req) {
 - ถ้าอ่านรูปไม่ชัด: ใส่ข้อมูลที่อ่านได้ confidence ต่ำ อย่าปฏิเสธ`
 
     // ── Call Gemini 1.5 Flash ─────────────────────────────────
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`
 
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
