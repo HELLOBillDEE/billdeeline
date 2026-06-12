@@ -1156,6 +1156,96 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- PERSONAL INCOME TAX CALCULATOR -->
+<div class="bd-ov" id="s-pit">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-pit')"></button>
+    <div style="flex:1"><div style="font-size:16px;font-weight:800">ภาษีเงินได้บุคคลธรรมดา</div><div style="font-size:12px;color:var(--i3)">คำนวณภาษีประจำปี</div></div>
+    <select id="pit-year-sel" class="fl-in" style="width:auto;font-size:13px;padding:6px 10px" onchange="S.pitYear=this.value;renderPIT()">
+      <option value="2567">ปีภาษี 2567</option>
+      <option value="2568">ปีภาษี 2568</option>
+    </select>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+
+    <div style="font-size:14px;font-weight:800;color:var(--t700);margin:14px 0 8px">เงินได้</div>
+    <div id="pit-income-rows"></div>
+    <button class="btn btn-g btn-sm" onclick="addIncomeRow('m40_1')" style="width:100%;margin-bottom:16px;font-size:13.5px">+ เพิ่มแหล่งรายได้</button>
+
+    <div style="font-size:14px;font-weight:800;color:var(--t700);margin-bottom:8px">ลดหย่อน</div>
+    <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)">
+        <div><div style="font-size:13.5px;font-weight:700">ส่วนตัว</div><div style="font-size:11px;color:var(--i3)">60,000 บาท (อัตโนมัติ)</div></div>
+        <div style="font-size:13px;font-weight:700;color:var(--t700)">฿60,000</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)">
+        <div><div style="font-size:13.5px;font-weight:700">คู่สมรส (ไม่มีรายได้)</div><div style="font-size:11px;color:var(--i3)">+60,000 บาท</div></div>
+        <button class="chip c-off" id="pit-spouse-btn" onclick="pitToggle('spouse',60000)" style="font-size:12px">ไม่มี</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)">
+        <div><div style="font-size:13.5px;font-weight:700">บุตร</div><div style="font-size:11px;color:var(--i3)">×30,000 บาทต่อคน</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="pitAdj('children',-1)" style="width:28px;height:28px;border-radius:8px;border:none;background:var(--ln);font-size:16px;cursor:pointer;color:var(--ink)">−</button>
+          <span id="pit-children-cnt" style="font-size:14px;font-weight:700;min-width:18px;text-align:center">0</span>
+          <button onclick="pitAdj('children',1)" style="width:28px;height:28px;border-radius:8px;border:none;background:var(--ln);font-size:16px;cursor:pointer;color:var(--ink)">+</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)">
+        <div><div style="font-size:13.5px;font-weight:700">บิดามารดา (ผู้มีเงินได้)</div><div style="font-size:11px;color:var(--i3)">+30,000 บาทต่อคน สูงสุด 2 คน</div></div>
+        <button class="chip c-off" id="pit-parent1-btn" onclick="pitToggle('parent1',30000)" style="font-size:12px">ไม่มี</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <div><div style="font-size:13.5px;font-weight:700">บิดามารดา (คู่สมรส)</div><div style="font-size:11px;color:var(--i3)">+30,000 บาทต่อคน สูงสุด 2 คน</div></div>
+        <button class="chip c-off" id="pit-parent2-btn" onclick="pitToggle('parent2',30000)" style="font-size:12px">ไม่มี</button>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ประกัน / ดอกเบี้ย</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">ประกันชีวิต (สูงสุด 100,000)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-ins-life" oninput="pitAllowIn('insLife',this.value,100000)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">ประกันสุขภาพ (สูงสุด 25,000)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-ins-health" oninput="pitAllowIn('insHealth',this.value,25000)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+      <div>
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">ดอกเบี้ยบ้าน (สูงสุด 100,000)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-home-int" oninput="pitAllowIn('homeInt',this.value,100000)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">กองทุน</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">SSF (สูงสุด 30% ของรายได้ / 200,000)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-ssf" oninput="pitAllowIn('ssf',this.value,200000)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+      <div>
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">RMF (สูงสุด 30% ของรายได้ / 500,000)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-rmf" oninput="pitAllowIn('rmf',this.value,500000)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">อื่น ๆ</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">Easy E-Receipt 2568 (สูงสุด 50,000)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-eer" oninput="pitAllowIn('eer',this.value,50000)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+      <div>
+        <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">บริจาคทั่วไป (สูงสุด 10% ของรายได้สุทธิ)</div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-donate" oninput="pitAllowIn('donate',this.value,null)" style="font-size:14px;padding:8px 12px"/>
+      </div>
+    </div>
+
+    <div style="font-size:14px;font-weight:800;color:var(--t700);margin-bottom:8px">ผลการคำนวณ</div>
+    <div id="pit-result"></div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"><div class="t-ic-wrap" id="ti"></div><span id="tm"></span></div>
 
@@ -1214,7 +1304,8 @@ const S={uid:null,bizId:null,biz:null,txns:[],tab:'home',flt:'all',
   selPlan:'smart',cycle:'monthly',
   eMode:'new',eTxnId:null,hasVAT:false,eKind:'expense',selCat:'วัตถุดิบ',
   ocrRes:null,ocrCat:'วัตถุดิบ',ocrImage:null,ocrImageType:null,
-  bizVAT:false,pendProf:null,authType:'line',allBiz:[],inviteCode:null};
+  bizVAT:false,pendProf:null,authType:'line',allBiz:[],inviteCode:null,
+  pitIncomes:[],pitAllow:{},pitYear:'2567'};
 
 // ── SUPABASE ──────────────────────────────────────────────────
 let sb;
@@ -1596,6 +1687,7 @@ function renderMore(){
     <div style="background:rgba(255,255,255,.22);border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:700">จัดการ</div>
   </div>`);
   const menu=[
+    {i:'doc',l:'คำนวณภาษีบุคคลธรรมดา',s:'ภ.ง.ด.90/91 · รายได้หลายทาง · ลดหย่อน · ยอดต้องจ่าย/คืน',fn:'openPIT()'},
     {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี ที่อยู่ VAT',fn:'openBiz()'},
     {i:'user',l:'ลูกค้า',s:`${CUSTS.length||0} ราย · auto-fill ใบเสนอราคา`,fn:'openCustomers()'},
     {i:'store',l:'สินค้า / บริการ',s:`${PRODS.length||0} รายการ · เพิ่มเข้าเอกสารได้เลย`,fn:'openProducts()'},
@@ -1614,6 +1706,162 @@ function renderMore(){
     <div style="flex:1"><div style="font-size:14.5px;font-weight:700;color:var(--ink)">${m.l}</div><div style="font-size:12px;color:var(--i3)">${m.s}</div></div>
     ${ic('chevR',18,'var(--i3)')}
   </button>`).join('')}</div>`);
+}
+
+// ── PERSONAL INCOME TAX ───────────────────────────────────────
+const PIT_TYPES={
+  m40_1:{label:'ม.40(1) เงินเดือน/ค่าจ้าง',short:'40(1)',rate:0.5,max:100000},
+  m40_2:{label:'ม.40(2) นายหน้า/ค่าธรรมเนียม',short:'40(2)',rate:0.5,max:100000},
+  m40_3:{label:'ม.40(3) ลิขสิทธิ์',short:'40(3)',rate:0.5,max:100000},
+  m40_5a:{label:'ม.40(5) ค่าเช่าบ้าน/โรงเรือน',short:'40(5)ก',rate:0.3,max:null},
+  m40_5b:{label:'ม.40(5) ค่าเช่ายานพาหนะ',short:'40(5)ข',rate:0.1,max:null},
+  m40_6a:{label:'ม.40(6) วิชาชีพอิสระ (แพทย์)',short:'40(6)แพทย์',rate:0.6,max:null},
+  m40_6b:{label:'ม.40(6) วิชาชีพอิสระ (อื่น ๆ)',short:'40(6)อื่น',rate:0.3,max:null},
+  m40_7:{label:'ม.40(7) รับเหมา',short:'40(7)',rate:0.7,max:null},
+  m40_8:{label:'ม.40(8) รายได้อื่น ๆ',short:'40(8)',rate:0.6,max:null}
+};
+const TAX_BRACKETS=[
+  {min:0,      max:150000,   rate:0},
+  {min:150000, max:300000,   rate:0.05},
+  {min:300000, max:500000,   rate:0.10},
+  {min:500000, max:750000,   rate:0.15},
+  {min:750000, max:1000000,  rate:0.20},
+  {min:1000000,max:2000000,  rate:0.25},
+  {min:2000000,max:5000000,  rate:0.30},
+  {min:5000000,max:Infinity, rate:0.35}
+];
+function calcPIT(netIncome){
+  let tax=0;const brackets=[];const ni=Math.max(0,netIncome);
+  for(const b of TAX_BRACKETS){
+    if(ni<=b.min)break;
+    const taxable=Math.min(ni,b.max)-b.min;
+    const t=taxable*b.rate;
+    if(b.rate>0)brackets.push({label:`${fmt2(b.min)}–${b.max===Infinity?'ขึ้นไป':fmt2(b.max)}`,rate:Math.round(b.rate*100)+'%',taxable,tax:t});
+    tax+=t;
+  }
+  return{tax,brackets};
+}
+function calcExpenseDeduction(row){
+  const t=PIT_TYPES[row.type]||PIT_TYPES.m40_8;
+  const amt=parseFloat(row.amount)||0;
+  let ded=amt*t.rate;
+  if(t.max!==null)ded=Math.min(ded,t.max);
+  return ded;
+}
+function pitTotalIncome(){return S.pitIncomes.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);}
+function pitTotalExpDed(){return S.pitIncomes.reduce((s,r)=>s+calcExpenseDeduction(r),0);}
+function pitTotalAllow(grossIncome,netAfterExp){
+  const a=S.pitAllow||{};
+  let total=60000;
+  if(a.spouse)total+=60000;
+  total+=(parseInt(a.children)||0)*30000;
+  if(a.parent1)total+=30000;
+  if(a.parent2)total+=30000;
+  total+=Math.min(parseFloat(a.insLife)||0,100000);
+  total+=Math.min(parseFloat(a.insHealth)||0,25000);
+  total+=Math.min(parseFloat(a.homeInt)||0,100000);
+  total+=Math.min(parseFloat(a.ssf)||0,Math.min(grossIncome*0.3,200000));
+  total+=Math.min(parseFloat(a.rmf)||0,Math.min(grossIncome*0.3,500000));
+  total+=Math.min(parseFloat(a.eer)||0,50000);
+  total+=Math.min(parseFloat(a.donate)||0,Math.max(0,netAfterExp*0.1));
+  return total;
+}
+function renderPITIncomeRows(){
+  const rows=S.pitIncomes;
+  if(!rows.length){
+    si('pit-income-rows','<div style="text-align:center;color:var(--i3);font-size:13px;padding:12px 0 4px">ยังไม่มีแหล่งรายได้</div>');
+    return;
+  }
+  si('pit-income-rows',rows.map((r,i)=>{
+    const t=PIT_TYPES[r.type]||PIT_TYPES.m40_8;
+    const amt=parseFloat(r.amount)||0;
+    const ded=calcExpenseDeduction(r);
+    const opts=Object.entries(PIT_TYPES).map(([k,v])=>`<option value="${k}"${k===r.type?' selected':''}>${v.label}</option>`).join('');
+    return `<div style="background:var(--card);border-radius:18px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="background:var(--t700);color:#fff;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">${t.short}</span>
+        <select class="fl-in" style="flex:1;font-size:12.5px;padding:5px 8px" onchange="pitRowType(${i},this.value)">${opts}</select>
+        <button onclick="removePitRow(${i})" style="background:none;border:none;color:var(--i3);font-size:18px;cursor:pointer;padding:0 2px;line-height:1">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+        <div>
+          <div style="font-size:11px;color:var(--i3);margin-bottom:3px">รายได้ (บาท)</div>
+          <input class="fl-in" type="number" inputmode="decimal" placeholder="0" value="${r.amount||''}" oninput="pitRowAmt(${i},this.value)" style="font-size:14px;padding:7px 10px"/>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--i3);margin-bottom:3px">ถูกหักภาษี ณ ที่จ่าย</div>
+          <input class="fl-in" type="number" inputmode="decimal" placeholder="0" value="${r.wht||''}" oninput="pitRowWHT(${i},this.value)" style="font-size:14px;padding:7px 10px"/>
+        </div>
+      </div>
+      ${amt>0?`<div style="font-size:12px;color:var(--i3)">หักค่าใช้จ่าย ${Math.round(t.rate*100)}%${t.max?` (สูงสุด ฿${fmt2(t.max)})`:''}  = <span style="color:var(--t700);font-weight:700">฿${fmt2(ded)}</span></div>`:''}
+    </div>`;
+  }).join(''));
+}
+function renderPIT(){
+  renderPITIncomeRows();
+  const gross=pitTotalIncome();
+  const expDed=pitTotalExpDed();
+  const afterExp=gross-expDed;
+  const allowTotal=pitTotalAllow(gross,afterExp);
+  const netIncome=Math.max(0,afterExp-allowTotal);
+  const{tax,brackets}=calcPIT(netIncome);
+  const totalWHT=S.pitIncomes.reduce((s,r)=>s+(parseFloat(r.wht)||0),0);
+  const diff=tax-totalWHT;const owing=diff>0;
+  const stepRows=[
+    {l:'รายได้รวม',v:gross,st:''},
+    {l:'หักค่าใช้จ่าย',v:-expDed,st:'color:var(--i3)'},
+    {l:'เงินได้สุทธิหลังค่าใช้จ่าย',v:afterExp,st:'font-weight:700'},
+    {l:'หักลดหย่อนรวม',v:-allowTotal,st:'color:var(--i3)'},
+    {l:'เงินได้สุทธิ',v:netIncome,st:'font-weight:800;color:var(--t700)'},
+    {l:'ภาษีที่ต้องจ่าย (อัตราก้าวหน้า)',v:tax,st:'font-weight:800'}
+  ];
+  const bracketHtml=brackets.length?`<div style="margin-top:10px"><div style="font-size:12px;font-weight:700;color:var(--i2);margin-bottom:6px">อัตราภาษีที่ใช้</div>${brackets.map(b=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--ln)"><span style="color:var(--i3)">${b.label} (${b.rate})</span><span style="font-weight:700">฿${fmt2(b.tax)}</span></div>`).join('')}</div>`:'';
+  si('pit-result',`
+    <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ขั้นตอนการคำนวณ</div>
+      ${stepRows.map((r,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;${i<stepRows.length-1?'border-bottom:1px solid var(--ln)':''}"><span style="font-size:13px;${r.st}">${r.l}</span><span style="font-size:13px;${r.st}">${r.v<0?'−':''}฿${fmt2(Math.abs(r.v))}</span></div>`).join('')}
+      ${bracketHtml}
+    </div>
+    <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">สรุปภาษี WHT</div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--ln)"><span style="font-size:13px">ภาษีที่ต้องจ่ายทั้งหมด</span><span style="font-size:13px;font-weight:700">฿${fmt2(tax)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--ln)"><span style="font-size:13px;color:var(--i3)">ถูกหักไปแล้ว (WHT)</span><span style="font-size:13px;color:var(--i3)">−฿${fmt2(totalWHT)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0 0"><span style="font-size:14px;font-weight:800">${owing?'ต้องจ่ายเพิ่ม':'ขอคืนภาษี'}</span><span style="font-size:18px;font-weight:800;color:${owing?'#e85d4a':'#22c55e'}">฿${fmt2(Math.abs(diff))}</span></div>
+    </div>
+    <div style="background:${owing?'linear-gradient(135deg,#e85d4a,#c0392b)':'linear-gradient(135deg,#22c55e,#16a34a)'};border-radius:18px;padding:20px;text-align:center;margin-bottom:12px">
+      <div style="color:rgba(255,255,255,.85);font-size:13px;margin-bottom:6px">${owing?'ต้องจ่ายภาษีเพิ่ม':'ได้รับเงินคืนภาษี'}</div>
+      <div style="color:#fff;font-size:32px;font-weight:800">฿${fmt2(Math.abs(diff))}</div>
+      <div style="color:rgba(255,255,255,.7);font-size:12px;margin-top:4px">ปีภาษี ${S.pitYear||'2567'}</div>
+    </div>
+    <button class="btn btn-p" onclick="toast('กำลังพัฒนา')" style="width:100%;margin-bottom:8px;font-size:14px">บันทึก / ส่งออก PDF</button>
+  `);
+}
+function addIncomeRow(type){S.pitIncomes.push({type:type||'m40_1',amount:'',wht:''});renderPIT();}
+function removePitRow(i){S.pitIncomes.splice(i,1);renderPIT();}
+function pitRowType(i,v){S.pitIncomes[i].type=v;renderPIT();}
+function pitRowAmt(i,v){S.pitIncomes[i].amount=v;renderPIT();}
+function pitRowWHT(i,v){S.pitIncomes[i].wht=v;renderPIT();}
+function pitToggle(key){
+  S.pitAllow[key]=!S.pitAllow[key];
+  const btn=$('pit-'+key+'-btn');
+  if(btn){btn.className='chip '+(S.pitAllow[key]?'c-on':'c-off');btn.textContent=S.pitAllow[key]?'มี':'ไม่มี';}
+  renderPIT();
+}
+function pitAdj(key,delta){
+  S.pitAllow[key]=Math.max(0,(parseInt(S.pitAllow[key])||0)+delta);
+  const el=$('pit-children-cnt');if(el)el.textContent=S.pitAllow[key]||0;
+  renderPIT();
+}
+function pitAllowIn(key,val){S.pitAllow[key]=val;renderPIT();}
+function openPIT(){
+  openOv('s-pit');
+  const sel=$('pit-year-sel');if(sel)sel.value=S.pitYear||'2567';
+  ['spouse','parent1','parent2'].forEach(k=>{
+    const btn=$('pit-'+k+'-btn');
+    if(btn){btn.className='chip '+(S.pitAllow[k]?'c-on':'c-off');btn.textContent=S.pitAllow[k]?'มี':'ไม่มี';}
+  });
+  const cc=$('pit-children-cnt');if(cc)cc.textContent=S.pitAllow.children||0;
+  renderPIT();
 }
 
 // ── SCAN FLOW ─────────────────────────────────────────────────
