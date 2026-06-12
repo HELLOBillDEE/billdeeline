@@ -579,7 +579,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <!-- ม.40 type + recurring (income only) -->
       <div id="f-m40-wrap" style="display:none">
         <div class="fl-lbl">ประเภทเงินได้ (มาตรา 40)</div>
-        <select class="fl-in" id="f-m40-type" style="font-size:13.5px;padding:9px 12px">
+        <select class="fl-in" id="f-m40-type" style="font-size:13.5px;padding:9px 12px" onchange="onM40Change(this.value)">
           <option value="">— ไม่ระบุ —</option>
           <option value="m40_1">ม.40(1) เงินเดือน / ค่าจ้าง</option>
           <option value="m40_2">ม.40(2) นายหน้า / ค่าธรรมเนียม</option>
@@ -591,6 +591,15 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
           <option value="m40_7">ม.40(7) รับเหมา</option>
           <option value="m40_8">ม.40(8) รายได้อื่น ๆ</option>
         </select>
+      </div>
+      <!-- ประกันสังคม (แสดงเมื่อ ม.40(1)/(2)) -->
+      <div id="f-sso-wrap" style="display:none">
+        <div class="fl-lbl">ประกันสังคมที่ถูกหัก (บาท/เดือน)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="fl-in" type="number" inputmode="decimal" id="f-sso" placeholder="750" style="flex:1;font-size:14px;padding:9px 12px" oninput="updEntryCalc()"/>
+          <div style="font-size:11.5px;color:var(--i3);text-align:right;line-height:1.4">สะสม<br/>ลดหย่อน PIT</div>
+        </div>
+        <div style="font-size:11px;color:var(--i3);margin-top:4px">อัตรา 5% ของเงินเดือน · สูงสุด 750 บาท/เดือน (9,000/ปี)</div>
       </div>
       <div id="f-recurring-wrap" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1226,6 +1235,14 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div style="background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ประกัน / ดอกเบี้ย</div>
       <div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:12.5px;color:var(--i3)">ประกันสังคม (สูงสุด 9,000/ปี)</div>
+          <span id="pit-sso-auto-tag" style="font-size:10px;background:rgba(57,194,207,.15);color:var(--t700);border-radius:5px;padding:1px 6px;display:none">จากระบบ</span>
+        </div>
+        <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-sso" oninput="pitAllowIn('sso',this.value,9000)" style="font-size:14px;padding:8px 12px"/>
+        <div style="font-size:11px;color:var(--i3);margin-top:3px">= ยอดที่หักทั้งปี · ดึงจากรายการบันทึกได้อัตโนมัติ</div>
+      </div>
+      <div style="margin-bottom:10px">
         <div style="font-size:12.5px;color:var(--i3);margin-bottom:4px">ประกันชีวิต (สูงสุด 100,000)</div>
         <input class="fl-in" type="number" inputmode="decimal" placeholder="0" id="pit-ins-life" oninput="pitAllowIn('insLife',this.value,100000)" style="font-size:14px;padding:8px 12px"/>
       </div>
@@ -1782,6 +1799,7 @@ function pitTotalAllow(grossIncome,netAfterExp){
   total+=(parseInt(a.children)||0)*30000;
   if(a.parent1)total+=30000;
   if(a.parent2)total+=30000;
+  total+=Math.min(parseFloat(a.sso)||0,9000);
   total+=Math.min(parseFloat(a.insLife)||0,100000);
   total+=Math.min(parseFloat(a.insHealth)||0,25000);
   total+=Math.min(parseFloat(a.homeInt)||0,100000);
@@ -1917,20 +1935,27 @@ async function loadPITAllYear(){
   const thYear=parseInt(S.pitYear||'2567');
   const adYear=thYear-543;
   const{data}=await sb.from('transactions')
-    .select('amount,wht_amount,vat,kind,m40_type,txn_date')
+    .select('amount,wht_amount,vat,kind,m40_type,sso_amount,txn_date')
     .eq('business_id',S.bizId)
     .eq('kind','income')
     .gte('txn_date',`${adYear}-01-01`)
     .lte('txn_date',`${adYear}-12-31`);
   if(!data)return;
-  const grouped={};
+  const grouped={};let totalSSO=0;
   data.forEach(t=>{
     const key=t.m40_type||'m40_8';
     if(!grouped[key])grouped[key]={type:key,amount:0,wht:0,count:0};
     grouped[key].amount+=parseFloat(t.amount)||0;
     grouped[key].wht+=(parseFloat(t.wht_amount)||0);
     grouped[key].count++;
+    totalSSO+=parseFloat(t.sso_amount)||0;
   });
+  // Auto-fill SSO allowance from system data
+  if(totalSSO>0){
+    S.pitAllow.sso=String(Math.min(Math.round(totalSSO),9000));
+    const ssoEl=$('pit-sso');if(ssoEl)ssoEl.value=S.pitAllow.sso;
+    const ssoTag=$('pit-sso-auto-tag');if(ssoTag)ssoTag.style.display='';
+  }
   S.pitIncomes=Object.values(grouped).map(g=>({
     type:g.type,amount:String(Math.round(g.amount*100)/100),
     wht:String(Math.round(g.wht*100)/100),fromSystem:true,count:g.count
@@ -2105,6 +2130,8 @@ function openEntry(mode){
     if($('f-party-taxid'))$('f-party-taxid').value='';
     if($('f-party-branch'))$('f-party-branch').value='00000';
     if($('f-m40-type'))$('f-m40-type').value='';
+    if($('f-sso'))$('f-sso').value='';
+    if($('f-sso-wrap'))$('f-sso-wrap').style.display='none';
     S.eRecurring=false;
     if($('f-rec-tgl'))$('f-rec-tgl').className='tgl t-off';
   }else{
@@ -2118,9 +2145,10 @@ function openEntry(mode){
     if($('f-bank-acc'))$('f-bank-acc').value=t.bank_account||'';
     if($('f-party-taxid'))$('f-party-taxid').value=t.vendor_tax_id||'';
     if($('f-party-branch'))$('f-party-branch').value=t.vendor_branch||'00000';
-    if($('f-m40-type'))$('f-m40-type').value=t.m40_type||'';
+    if($('f-m40-type')){$('f-m40-type').value=t.m40_type||'';onM40Change(t.m40_type||'');}
+    if($('f-sso'))$('f-sso').value=t.sso_amount||'';
     S.eRecurring=false;
-    const rt=$('f-rec-tgl');if(rt)rt.className='tgl t-off';
+    if($('f-rec-tgl'))$('f-rec-tgl').className='tgl t-off';
   }
   renderCatChips('f-cats',CATS,S.selCat);setKind(S.eKind);setEntWHT(S.eWHT);setPayMethod(S.ePayMethod);updEntryCalc();
   closeOv('s-ext');openOv('s-entry');
@@ -2214,10 +2242,11 @@ async function saveEntry(){
     vendor_tax_id:$('f-party-taxid')?.value||'',
     vendor_branch:$('f-party-branch')?.value||'00000',
     m40_type:$('f-m40-type')?.value||null,
+    sso_amount:parseFloat($('f-sso')?.value)||0,
     date:$('f-dt').value||todayISO(),txn_date:$('f-dt').value||todayISO(),
     note:$('f-note')?.value||'',source:'manual'
   };
-  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account','m40_type'];
+  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account','m40_type','sso_amount'];
   let err;
   if(S.eTxnId){({error:err}=await sb.from('transactions').update(row).eq('id',S.eTxnId));}
   else{({error:err}=await sb.from('transactions').insert(row));}
@@ -2243,6 +2272,11 @@ async function saveEntry(){
     }else{toast('บันทึกรายการแล้ว');}
   }else{toast(S.eTxnId?'แก้ไขรายการแล้ว':'บันทึกรายการแล้ว');}
   closeOv('s-entry');await loadTxns();
+}
+function onM40Change(val){
+  // Show SSO field only for ม.40(1) เงินเดือน and ม.40(2) นายหน้า (eligible for SSF)
+  const showSSO=['m40_1','m40_2'].includes(val);
+  if($('f-sso-wrap'))$('f-sso-wrap').style.display=showSSO?'':'none';
 }
 function togRecurring(){
   S.eRecurring=!S.eRecurring;
