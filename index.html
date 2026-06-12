@@ -601,6 +601,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div><div class="fl-lbl">เบอร์โทร</div><div class="fl-w"><span id="bz4"></span><input class="fl-in" id="bz-phone" type="tel" placeholder="0XX-XXX-XXXX"/></div></div>
       <div><div class="fl-lbl">อีเมล</div><div class="fl-w"><span id="bz5"></span><input class="fl-in" id="bz-email" type="email" placeholder="email@example.com"/></div></div>
       <div><div class="fl-lbl">ที่อยู่</div><div class="fl-w"><span id="bz6"></span><textarea class="fl-in fl-ta" id="bz-addr" placeholder="ที่อยู่กิจการ"></textarea></div></div>
+      <div><div class="fl-lbl">เบอร์ PromptPay (รับชำระเงิน)</div><div class="fl-w"><input class="fl-in" id="bz-promptpay" type="tel" placeholder="เบอร์มือถือ หรือ เลขภาษี 13 หลัก"/></div></div>
+      <div><div class="fl-lbl">เลขที่บัญชีธนาคาร</div><div class="fl-w"><input class="fl-in" id="bz-bank" placeholder="เช่น 123-4-56789-0 ธ.กสิกรไทย"/></div></div>
     </div>
     <div class="card" style="margin-top:14px;display:flex;align-items:center;gap:12px">
       <div id="bz-vat-ic" style="width:40px;height:40px;border-radius:12px;background:var(--t50);display:flex;align-items:center;justify-content:center"></div>
@@ -1853,6 +1855,8 @@ function openBiz(){
   $('bz-phone').value=S.biz.phone||'';
   $('bz-email').value=S.biz.email||'';
   $('bz-addr').value=S.biz.address||'';
+  if($('bz-promptpay'))$('bz-promptpay').value=S.biz.promptpay||'';
+  if($('bz-bank'))$('bz-bank').value=S.biz.bank_account||'';
   S.bizVAT=S.biz.vat||false;
   $('bz-vat').className=`tgl ${S.bizVAT?'t-on':'t-off'}`;
   openOv('s-biz');
@@ -1868,6 +1872,8 @@ async function saveBiz(){
     phone:($('bz-phone').value||'').trim(),
     email:($('bz-email').value||'').trim(),
     address:($('bz-addr').value||'').trim(),
+    promptpay:($('bz-promptpay')?.value||'').trim(),
+    bank_account:($('bz-bank')?.value||'').trim(),
     vat:S.bizVAT,
   };
   const btn=$('save-biz-btn');if(btn)btn.disabled=true;
@@ -2033,8 +2039,9 @@ async function goPayStep2(){
     $('pay-s2-pp').className='pay-step on';
     si('pp-amount',`฿${fmt(PAY.amount)}`);
     si('pp-ref',PAY.ref);
-    // PromptPay number (ตั้งค่าที่นี่ — เบอร์บริษัท)
-    const ppNumber='0812345678'; // TODO: ใส่เบอร์ PromptPay จริง
+    // PromptPay number — ดึงจากข้อมูลธุรกิจ (เบอร์โทร หรือ เลขภาษี)
+    const ppNumber=S.biz?.promptpay||S.biz?.phone||S.biz?.tax_id||'';
+    if(!ppNumber){toast('กรุณากรอกเบอร์ PromptPay ในข้อมูลธุรกิจก่อน');return;}
     const payload=promptPayQR(ppNumber,PAY.amount);
     await drawQR('pp-qr-canvas',payload);
   }else{
