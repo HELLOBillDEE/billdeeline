@@ -489,18 +489,18 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div style="color:rgba(255,255,255,.45);font-size:12px">ถ่าย · เลือกจากคลัง · PDF จาก Files / เมล</div>
   </div>
   <!-- hidden inputs -->
-  <input type="file" id="file-in"     accept="image/*,.pdf,application/pdf" style="display:none" onchange="handleFile(this)"/>
+  <input type="file" id="file-in-cam" accept="image/*"                      style="display:none" onchange="handleFile(this)" capture="environment"/>
   <input type="file" id="file-in-pdf" accept=".pdf,application/pdf"         style="display:none" onchange="handleFile(this)"/>
-  <input type="file" id="file-in-img" accept="image/*"                      style="display:none" onchange="handleFile(this)" capture="environment"/>
+  <input type="file" id="file-in-img" accept="image/*"                      style="display:none" onchange="handleFile(this)"/>
   <!-- bottom bar -->
   <div style="display:flex;align-items:center;justify-content:space-around;padding:0 18px 44px;gap:10px">
     <!-- แกลเลอรี / ไฟล์รูป -->
     <button onclick="document.getElementById('file-in-img').click()"
       style="flex:1;height:54px;border-radius:16px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px" id="cap-gal">
-      <span id="cap-gal-ic"></span>รูปภาพ
+      <span id="cap-gal-ic"></span>คลังภาพ
     </button>
-    <!-- ปุ่มหลัก: ถ่าย (ส่ง file ทุกประเภท) -->
-    <button class="shutter" onclick="document.getElementById('file-in').click()"><div class="shutter-in"></div></button>
+    <!-- ปุ่มหลัก: ถ่ายรูป (camera) -->
+    <button class="shutter" onclick="document.getElementById('file-in-cam').click()"><div class="shutter-in"></div></button>
     <!-- PDF -->
     <button onclick="document.getElementById('file-in-pdf').click()"
       style="flex:1;height:54px;border-radius:16px;border:none;background:rgba(229,124,91,.18);color:#e57c5b;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px" id="cap-pdf">
@@ -1260,38 +1260,40 @@ const CFG={
 
 // ── PLANS ─────────────────────────────────────────────────────
 const PLANS={
-  basic:{key:'basic',name:'Basic',price:0,tag:'สำหรับบุคคลทั่วไป',popular:false,
-    desc:'เก็บเอกสารรายเดือนให้เป็นระเบียบ พร้อมลดหย่อนภาษีรายปี',
+  basic:{key:'basic',name:'Basic',price:0,tag:'เริ่มต้นฟรี',popular:false,
+    desc:'เหมาะสำหรับ Freelancer และผู้มีรายได้ทางเดียว ใช้งานได้เลยโดยไม่มีค่าใช้จ่าย',
     features:[
-      {t:'สแกนใบเสร็จ & เอกสารด้วย AI',v:true},
-      {t:'จัดเก็บเอกสารเป็นระเบียบรายเดือน',v:true},
-      {t:'เก็บเอกสารลดหย่อนภาษีรายปี',v:true},
-      {t:'ส่งออก/ดึงข้อมูลเก็บเอง (LINE/ภายนอก)',v:true},
-      {t:'บิลซื้อ-บิลขาย & เอกสารยื่นภาษี',v:false},
-      {t:'ออกเอกสารถูกต้องตามหลักบัญชี',v:false},
-      {t:'ผู้ใช้หลายคน & แยกสาขา',v:false}
+      {t:'บันทึกรายรับ-รายจ่าย ไม่จำกัด',v:true},
+      {t:'สแกนบิลด้วย AI (10 ครั้ง/เดือน)',v:true},
+      {t:'รายงาน P&L รายเดือน',v:true},
+      {t:'คำนวณภาษีบุคคลธรรมดา (ม.40)',v:true},
+      {t:'ออกใบเสนอราคา / ใบแจ้งหนี้',v:false},
+      {t:'รายงาน VAT ภ.พ.30 + WHT ภ.ง.ด.3/53',v:false},
+      {t:'กระทบยอดธนาคาร (Bank Recon)',v:false},
+      {t:'จัดการลูกค้า / สินค้า',v:false}
     ]},
-  smart:{key:'smart',name:'Smart',price:299,tag:'คุ้มที่สุด',popular:true,
-    desc:'เหมาะกับเจ้าของธุรกิจเล็ก–กลาง ปลดล็อกงานบัญชีเต็มรูปแบบ',
+  smart:{key:'smart',name:'Smart',price:199,tag:'ยอดนิยม 🔥',popular:true,
+    desc:'เหมาะกับ SME และเจ้าของกิจการที่ต้องการบัญชีครบวงจร ราคาถูกกว่าคู่แข่ง 3 เท่า',
     features:[
-      {t:'สแกนใบเสร็จ & เอกสารด้วย AI',v:true},
-      {t:'จัดเก็บเอกสารเป็นระเบียบรายเดือน',v:true},
-      {t:'ส่งออก/ดึงข้อมูลเก็บเอง (LINE/ภายนอก)',v:true},
-      {t:'บิลซื้อ-บิลขาย & เอกสารยื่นภาษี',v:'ปลดล็อก'},
-      {t:'ดึงบิลขายจาก Excel / PDF / กรอกเอง',v:true},
-      {t:'ออกเอกสารถูกต้องตามหลักบัญชี',v:true},
-      {t:'ผู้ใช้หลายคน & แยกสาขา',v:false}
+      {t:'สแกนบิลด้วย AI ไม่จำกัด (PNG/JPG/PDF)',v:true},
+      {t:'ออกเอกสารครบ 6 ประเภท (ตามมาตรฐาน สรรพากร)',v:true},
+      {t:'รายงาน VAT ภ.พ.30 (format กรมสรรพากร)',v:true},
+      {t:'รายงาน WHT ภ.ง.ด.3 + ภ.ง.ด.53',v:true},
+      {t:'P&L Dashboard + กระทบยอดธนาคาร',v:true},
+      {t:'จัดการลูกค้า / สินค้า-บริการ',v:true},
+      {t:'คำนวณภาษีบุคคลธรรมดา (ม.40 ทุกประเภท)',v:true},
+      {t:'หลายกิจการ / หลายผู้ใช้',v:false}
     ]},
-  pro:{key:'pro',name:'Pro',price:899,tag:'หลายสาขา / ทีมบัญชี',popular:false,
-    desc:'ไม่จำกัดทุกการใช้งาน รองรับทีมหลายคนและธุรกิจหลายสาขา',
+  pro:{key:'pro',name:'Pro',price:449,tag:'ทีม & หลายสาขา',popular:false,
+    desc:'ทุกฟีเจอร์ใน Smart บวกรองรับทีมบัญชีและธุรกิจหลายสาขา',
     features:[
-      {t:'สแกนใบเสร็จ & เอกสารด้วย AI',v:'ไม่จำกัด'},
-      {t:'บิลซื้อ-บิลขาย & เอกสารยื่นภาษี',v:'ไม่จำกัด'},
-      {t:'ดึงบิลขายจาก Excel / PDF / กรอกเอง',v:true},
-      {t:'ออกเอกสารถูกต้องตามหลักบัญชี',v:true},
-      {t:'ส่งออก/ดึงข้อมูลเก็บเอง (LINE/ภายนอก)',v:true},
-      {t:'ผู้ใช้งานหลายคนพร้อมจัดการสิทธิ์',v:true},
-      {t:'รองรับแยกสาขา',v:true}
+      {t:'ทุกอย่างใน Smart ไม่มีข้อจำกัด',v:true},
+      {t:'ผู้ใช้งานหลายคน (สูงสุด 5 คน)',v:true},
+      {t:'จัดการหลายกิจการในแอปเดียว',v:true},
+      {t:'ส่งออก PDF ทุกเอกสาร (ใบกำกับฯ / ใบเสร็จ)',v:true},
+      {t:'API Integration (Zapier / n8n)',v:'เร็ว ๆ นี้'},
+      {t:'สรุปภาษีรายปี ภ.ง.ด.90/91 พร้อมยื่น',v:'เร็ว ๆ นี้'},
+      {t:'Priority Support ตอบใน 4 ชั่วโมง',v:true}
     ]}
 };
 
@@ -2121,9 +2123,15 @@ async function saveEntry(){
     date:$('f-dt').value||todayISO(),txn_date:$('f-dt').value||todayISO(),
     note:$('f-note')?.value||'',source:'manual'
   };
+  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account'];
   let err;
   if(S.eTxnId){({error:err}=await sb.from('transactions').update(row).eq('id',S.eTxnId));}
   else{({error:err}=await sb.from('transactions').insert(row));}
+  if(err&&err.message&&err.message.includes('schema cache')){
+    const slim={...row};BETA_COLS.forEach(c=>delete slim[c]);
+    if(S.eTxnId){({error:err}=await sb.from('transactions').update(slim).eq('id',S.eTxnId));}
+    else{({error:err}=await sb.from('transactions').insert(slim));}
+  }
   if(err){alert('บันทึกไม่สำเร็จ: '+err.message);return}
   closeOv('s-entry');await loadTxns();toast(S.eTxnId?'แก้ไขรายการแล้ว':'บันทึกรายการแล้ว');
 }
