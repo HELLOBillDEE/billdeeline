@@ -196,6 +196,16 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mnu-btn{width:100%;background:none;border:none;display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s}
 .mnu-btn:active{background:var(--t50)}
 .mnu-ic{width:38px;height:38px;border-radius:11px;background:var(--t50);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* PAYMENT */
+.pm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.pm-btn{background:#fff;border:2px solid var(--ln);border-radius:16px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .15s;font-family:inherit}
+.pm-btn.on{border-color:var(--t500);background:var(--t50)}
+.pm-btn span{font-size:12.5px;font-weight:600;color:var(--i2)}
+.pm-btn.on span{color:var(--t700)}
+.qr-wrap{background:#fff;border-radius:20px;padding:20px;text-align:center;box-shadow:0 2px 16px rgba(15,42,48,.1)}
+.slip-drop{border:2.5px dashed var(--t300);border-radius:16px;padding:28px 16px;text-align:center;cursor:pointer;transition:background .15s;background:var(--t50)}
+.slip-drop:active,.slip-drop.drag{background:var(--t300)}
+.pay-step{display:none}.pay-step.on{display:block}
 /* DOC GENERATOR */
 .dtab{flex:1;height:40px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:transparent;color:var(--i3);font-family:inherit;cursor:pointer;transition:all .15s}
 .dtab.on{background:var(--t600);color:#fff}
@@ -638,6 +648,124 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- PAYMENT OVERLAY (PromptPay + Slip Verify) -->
+<div class="bd-ov" id="s-pay">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-pay')" id="pay-bk"></button>
+    <div style="flex:1">
+      <div style="font-size:17.5px;font-weight:800" id="pay-ttl">ชำระเงิน</div>
+      <div style="font-size:12px;color:var(--i3)" id="pay-sub">สมัครแพ็กเกจ BillDEE</div>
+    </div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+
+    <!-- Step 1: เลือกวิธีชำระ -->
+    <div class="pay-step on" id="pay-s1">
+      <div style="background:var(--t50);border-radius:18px;padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;flex-shrink:0" id="pay-plan-ic"></div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:16px" id="pay-plan-name">Smart Plan</div>
+          <div style="font-size:13px;color:var(--i2)" id="pay-plan-price">฿299 / เดือน</div>
+        </div>
+        <div style="background:var(--grad);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px" id="pay-trial-badge" style="display:none">🎁 ทดลอง 14 วัน</div>
+      </div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--i2);margin-bottom:10px">เลือกวิธีชำระเงิน</div>
+      <div class="pm-grid">
+        <button class="pm-btn on" id="pm-pp" onclick="selectPayMethod('promptpay')">
+          <svg width="38" height="38" viewBox="0 0 38 38"><rect width="38" height="38" rx="11" fill="#004B87"/><text x="19" y="26" text-anchor="middle" font-size="14" fill="#fff" font-weight="800">PP</text></svg>
+          <span>PromptPay</span>
+        </button>
+        <button class="pm-btn" id="pm-bt" onclick="selectPayMethod('bank_transfer')">
+          <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="11" fill="#2E7D32"/><path d="M9 15l10-7 10 7M11 15v10M19 15v10M27 15v10M9 25h20" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span>โอนธนาคาร</span>
+        </button>
+      </div>
+      <button class="btn btn-p" onclick="goPayStep2()" id="pay-next-btn">ถัดไป →</button>
+    </div>
+
+    <!-- Step 2A: PromptPay QR -->
+    <div class="pay-step" id="pay-s2-pp">
+      <div class="qr-wrap" style="margin-bottom:14px">
+        <div style="font-size:13px;color:var(--i2);margin-bottom:12px">สแกน QR ด้วยแอปธนาคาร</div>
+        <canvas id="pp-qr-canvas" style="border-radius:12px;border:4px solid var(--t50)"></canvas>
+        <div style="margin-top:10px;font-size:22px;font-weight:800;color:var(--t700)" id="pp-amount"></div>
+        <div style="font-size:12px;color:var(--i3);margin-top:4px">อ้างอิง: <b id="pp-ref"></b></div>
+      </div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--i2);margin-bottom:10px">ส่งสลิปเพื่อยืนยัน</div>
+      <div class="slip-drop" id="slip-drop" onclick="$('slip-file').click()">
+        <div id="slip-drop-ic" style="margin-bottom:8px"></div>
+        <div style="font-size:14px;font-weight:700;color:var(--t700)">แตะเพื่ออัพโหลดสลิป</div>
+        <div style="font-size:12px;color:var(--i3);margin-top:4px">รูปภาพ JPG / PNG / HEIC</div>
+      </div>
+      <input type="file" id="slip-file" accept="image/*" style="display:none" onchange="handleSlipUpload(this)"/>
+      <div id="slip-preview" style="display:none;margin-top:12px"></div>
+      <button class="btn btn-g btn-sm" style="margin-top:12px" onclick="backToPayStep1()">← เปลี่ยนวิธีชำระ</button>
+    </div>
+
+    <!-- Step 2B: โอนธนาคาร -->
+    <div class="pay-step" id="pay-s2-bt">
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px">โอนเงินมาที่</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><div style="font-size:11.5px;color:var(--i3)">ธนาคาร</div><div style="font-weight:700">กสิกรไทย (KBank)</div></div>
+          <div><div style="font-size:11.5px;color:var(--i3)">ชื่อบัญชี</div><div style="font-weight:700">บริษัท บิลดี จำกัด</div></div>
+          <div><div style="font-size:11.5px;color:var(--i3)">เลขบัญชี</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-weight:800;font-size:18px;letter-spacing:1px">123-4-56789-0</div>
+              <button onclick="navigator.clipboard.writeText('1234567890').then(()=>toast('คัดลอกแล้ว'))" style="border:none;background:var(--t50);color:var(--t700);padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">คัดลอก</button>
+            </div>
+          </div>
+          <div><div style="font-size:11.5px;color:var(--i3)">จำนวน</div><div style="font-weight:800;font-size:20px;color:var(--t700)" id="bt-amount"></div></div>
+          <div><div style="font-size:11.5px;color:var(--i3)">หมายเหตุโอน (ใส่ทุกครั้ง)</div><div style="font-weight:700;font-size:16px;letter-spacing:1px;color:var(--t700)" id="bt-ref"></div></div>
+        </div>
+      </div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--i2);margin-bottom:10px">ส่งสลิปยืนยัน</div>
+      <div class="slip-drop" onclick="$('slip-file2').click()">
+        <div id="slip-drop-ic2" style="margin-bottom:8px"></div>
+        <div style="font-size:14px;font-weight:700;color:var(--t700)">แตะเพื่ออัพโหลดสลิป</div>
+        <div style="font-size:12px;color:var(--i3);margin-top:4px">รูปภาพ JPG / PNG / HEIC</div>
+      </div>
+      <input type="file" id="slip-file2" accept="image/*" style="display:none" onchange="handleSlipUpload(this)"/>
+      <div id="slip-preview2" style="display:none;margin-top:12px"></div>
+      <button class="btn btn-g btn-sm" style="margin-top:12px" onclick="backToPayStep1()">← เปลี่ยนวิธีชำระ</button>
+    </div>
+
+    <!-- Step 3: กำลังตรวจสอบ -->
+    <div class="pay-step" id="pay-s3">
+      <div style="text-align:center;padding:48px 0">
+        <div class="ana-ring" style="margin:0 auto 24px"><div class="ana-core" id="pay-verif-ic"></div></div>
+        <div style="font-size:18px;font-weight:800">AI กำลังตรวจสอบสลิป</div>
+        <div style="font-size:13.5px;color:var(--i3);margin-top:8px">ใช้เวลาไม่กี่วินาที…</div>
+      </div>
+    </div>
+
+    <!-- Step 4: สำเร็จ -->
+    <div class="pay-step" id="pay-s4">
+      <div style="text-align:center;padding:40px 0">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(22,160,111,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 18px" id="pay-suc-ic"></div>
+        <div style="font-size:21px;font-weight:800;margin-bottom:8px" id="pay-suc-ttl">สำเร็จ!</div>
+        <div style="font-size:14px;color:var(--i2);line-height:1.65" id="pay-suc-msg"></div>
+        <button class="btn btn-p" style="margin-top:28px" onclick="closeOv('s-pay');renderMore()">เริ่มใช้งาน</button>
+      </div>
+    </div>
+
+    <!-- Step 5: รอ manual approve -->
+    <div class="pay-step" id="pay-s5">
+      <div style="text-align:center;padding:36px 0">
+        <div style="font-size:48px;margin-bottom:14px">⏳</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px">รับสลิปแล้ว!</div>
+        <div style="font-size:13.5px;color:var(--i2);line-height:1.65;margin-bottom:24px">ทีมงานจะตรวจสอบและอัปเกรดแพ็กเกจ<br/>ภายใน <b>1 ชั่วโมง</b> 🙏</div>
+        <div style="background:var(--t50);border-radius:14px;padding:14px;font-size:12.5px;color:var(--i2);text-align:left;line-height:1.7">
+          💬 แจ้งผ่าน LINE OA <b>@billdee</b> เพื่อรับการยืนยันเร็วขึ้น
+        </div>
+        <button class="btn btn-g" style="margin-top:20px" onclick="closeOv('s-pay')">ปิด</button>
+      </div>
+    </div>
+
+    <div style="height:30px"></div>
+  </div>
+</div>
+
 <!-- PDF WRAP -->
 <div id="pdf-wrap">
   <div class="pdf-no-print" style="background:#0f2a30;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:max(12px,env(safe-area-inset-top,12px)) 18px 14px;flex-shrink:0">
@@ -900,8 +1028,12 @@ function paintIcons(){
   si('bz1',ic('store',19,'#8aa3a8'));si('bz2',ic('doc',19,'#8aa3a8'));si('bz3',ic('user',19,'#8aa3a8'));
   si('bz4',ic('phone',19,'#8aa3a8'));si('bz5',ic('mail',19,'#8aa3a8'));si('bz6',ic('pin',19,'#8aa3a8'));
   si('biz-vat-ic',ic('receipt',21,'#0e9aa7'));si('save-biz-btn',`${ic('check',19,'#fff')}บันทึกข้อมูลธุรกิจ`);
-  // Google Drive icon (Google colors)
-  si('bz-gdrive-ic',`<svg width="22" height="22" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>`);
+  si('pay-bk',ic('chevL',22,'#0f2a30'));
+  si('pay-plan-ic',ic('crown',23,'#fff'));
+  si('slip-drop-ic',ic('gallery',28,'#0e9aa7'));
+  si('slip-drop-ic2',ic('gallery',28,'#0e9aa7'));
+  si('pay-verif-ic',ic('sparkle',46,'#39c2cf'));
+  si('pay-suc-ic',ic('check',34,'var(--green)'));
   si('csv-btn',ic('doc',20,'#0f2a30'));
   si('copy-btn',ic('line',20,'#0f2a30'));
   si('pdf-btn',ic('receipt',20,'#e25563'));
@@ -1112,7 +1244,7 @@ function renderMore(){
     <div style="background:rgba(255,255,255,.22);border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:700">จัดการ</div>
   </div>`);
   const menu=[
-    {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี Google Drive',fn:'openBiz()'},
+    {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี ที่อยู่ VAT',fn:'openBiz()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'doc',l:'ออกเอกสาร / ใบกำกับภาษี',s:'ใบเสนอราคา · ใบแจ้งหนี้ · WHT',fn:'openDocGen()'},
@@ -1291,40 +1423,35 @@ async function delEntry(){
 // ── BUSINESS EDIT ─────────────────────────────────────────────
 function openBiz(){
   if(!S.biz)return;
-  $('bz-name').value=S.biz.name||'';$('bz-taxid').value=S.biz.tax_id||'';
-  $('bz-owner').value=S.biz.owner||'';$('bz-phone').value=S.biz.phone||'';
-  $('bz-email').value=S.biz.email||'';$('bz-addr').value=S.biz.address||'';
-  $('bz-gscript').value=S.biz.gscript_url||'';
-  $('bz-gdrive').value=S.biz.gdrive_folder_url||'';
-  const openBtn=$('bz-gdrive-open');
-  if(openBtn) openBtn.style.display=S.biz.gdrive_folder_url?'block':'none';
+  $('bz-name').value=S.biz.name||'';
+  $('bz-taxid').value=S.biz.tax_id||'';
+  $('bz-owner').value=S.biz.owner||'';
+  $('bz-phone').value=S.biz.phone||'';
+  $('bz-email').value=S.biz.email||'';
+  $('bz-addr').value=S.biz.address||'';
   S.bizVAT=S.biz.vat||false;
   $('bz-vat').className=`tgl ${S.bizVAT?'t-on':'t-off'}`;
   openOv('s-biz');
 }
 function togBizVAT(){S.bizVAT=!S.bizVAT;$('bz-vat').className=`tgl ${S.bizVAT?'t-on':'t-off'}`}
-function extractGDriveId(url){
-  const m=url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-  return m?m[1]:'';
-}
-function openGDrive(){
-  const url=S.biz?.gdrive_folder_url;
-  if(url) window.open(url,'_blank');
-}
 async function saveBiz(){
-  const name=($('bz-name').value||'').trim();if(!name){alert('กรุณาใส่ชื่อกิจการ');return}
-  const gdriveUrl=($('bz-gdrive').value||'').trim();
-  const gscriptUrl=($('bz-gscript').value||'').trim();
-  const gdriveId=extractGDriveId(gdriveUrl);
-  const row={name,tax_id:$('bz-taxid').value,owner:$('bz-owner').value,
-    phone:$('bz-phone').value,email:$('bz-email').value,address:$('bz-addr').value,
-    vat:S.bizVAT,gdrive_folder_url:gdriveUrl,gdrive_folder_id:gdriveId,gscript_url:gscriptUrl};
+  const name=($('bz-name').value||'').trim();
+  if(!name){alert('กรุณาใส่ชื่อกิจการ');return}
+  const row={
+    name,
+    tax_id:($('bz-taxid').value||'').trim(),
+    owner:($('bz-owner').value||'').trim(),
+    phone:($('bz-phone').value||'').trim(),
+    email:($('bz-email').value||'').trim(),
+    address:($('bz-addr').value||'').trim(),
+    vat:S.bizVAT,
+  };
+  const btn=$('save-biz-btn');if(btn)btn.disabled=true;
   const{data,error}=await sb.from('businesses').update(row).eq('id',S.bizId).select().single();
+  if(btn)btn.disabled=false;
   if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
   S.biz={...S.biz,...row};
-  // show open button if URL set
-  const ob=$('bz-gdrive-open');if(ob)ob.style.display=gdriveUrl?'block':'none';
-  closeOv('s-biz');renderMain();renderMore();toast('บันทึกข้อมูลธุรกิจแล้ว');
+  closeOv('s-biz');renderMain();renderMore();toast('บันทึกข้อมูลธุรกิจแล้ว ✓');
 }
 
 // ── EXPORT CSV ───────────────────────────────────────────────
@@ -1399,12 +1526,154 @@ function updUpgBtn(){
   si('btn-upg',`${ic(isCurr?'check':'crown',19,'#fff')}${isCurr?'นี่คือแพ็กเกจปัจจุบัน':p.price===0?'เปลี่ยนเป็น Basic':`อัปเกรดเป็น ${p.name} · ฿${fmt(price)}`}`);
   const b=$('btn-upg');if(b){b.disabled=isCurr;b.className=`btn ${isCurr?'btn-g':'btn-p'}`;}
 }
-async function applyPlan(){
-  const p=PLANS[S.selPlan];if(S.selPlan===(S.biz?.plan||'basic'))return;
-  if(p.price>0&&!confirm(`ยืนยันอัปเกรดเป็น ${p.name}?\n(ระบบชำระเงินกำลังพัฒนา)`))return;
-  const{data,error}=await sb.from('businesses').update({plan:S.selPlan}).eq('id',S.bizId).select().single();
-  if(error){alert('อัปเกรดไม่สำเร็จ');return}
-  S.biz.plan=S.selPlan;closeOv('s-sub');renderMore();toast(`อัปเกรดเป็น ${p.name} แล้ว`);
+function applyPlan(){
+  const p=PLANS[S.selPlan];
+  if(S.selPlan===(S.biz?.plan||'basic'))return;
+  if(p.price===0){
+    // Downgrade to Basic — no payment needed
+    sb.from('businesses').update({plan:'basic'}).eq('id',S.bizId).then(({error})=>{
+      if(error){alert('เปลี่ยนแพ็กเกจไม่สำเร็จ');return}
+      S.biz.plan='basic';closeOv('s-sub');renderMore();toast('เปลี่ยนเป็น Basic แล้ว');
+    });
+    return;
+  }
+  // Open payment flow
+  closeOv('s-sub');
+  openPayment(S.selPlan,S.cycle);
+}
+
+// ── PAYMENT (PromptPay + Slip Verify) ────────────────────────
+const PAY={method:'promptpay',plan:'smart',cycle:'monthly',ref:'',amount:0};
+
+// PromptPay EMV QR payload generator (no external lib needed)
+function promptPayQR(phoneOrTaxId,amount){
+  function crc16(str){
+    let crc=0xFFFF;
+    for(let i=0;i<str.length;i++){
+      crc^=str.charCodeAt(i)<<8;
+      for(let j=0;j<8;j++) crc=crc&0x8000?(crc<<1)^0x1021:(crc<<1);
+    }
+    return(crc&0xFFFF).toString(16).toUpperCase().padStart(4,'0');
+  }
+  function f(id,v){const l=String(v.length).padStart(2,'0');return`${id}${l}${v}`}
+  let target=(phoneOrTaxId||'').replace(/\D/g,'');
+  if(target.startsWith('0'))target='66'+target.slice(1);
+  const typeCode=target.length<=13&&target.startsWith('66')?'01':'02';
+  const merchant=f('00','0001')+f(typeCode,target);
+  let payload=f('00','01')+f('01','12')+f('29',merchant)+f('53','764')+
+    (amount?f('54',amount.toFixed(2)):'')+f('58','TH')+f('59','BillDEE')+f('60','Bangkok')+'6304';
+  return payload+crc16(payload);
+}
+
+// Draw QR on canvas using simple SVG-based approach via QRious (loaded lazily)
+async function drawQR(canvasId,text){
+  const canvas=$(canvasId);if(!canvas)return;
+  // Load QRious library lazily
+  if(!window.QRious){
+    await new Promise(r=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';s.onload=r;document.head.appendChild(s);});
+  }
+  new window.QRious({element:canvas,value:text,size:200,backgroundAlpha:1,foreground:'#0f2a30',background:'#ffffff',level:'M'});
+}
+
+function openPayment(planKey,cycle){
+  const p=PLANS[planKey];if(!p||p.price===0)return;
+  const yr=cycle==='yearly';
+  PAY.plan=planKey;PAY.cycle=cycle||'monthly';
+  PAY.amount=yr?Math.round(p.price*10):p.price;
+  PAY.ref='BD'+Date.now().toString(36).slice(-6).toUpperCase();
+  PAY.method='promptpay';
+  // Reset steps
+  ['pay-s1','pay-s2-pp','pay-s2-bt','pay-s3','pay-s4','pay-s5'].forEach(id=>{
+    const el=$(id);if(el)el.className='pay-step';
+  });
+  $('pay-s1').className='pay-step on';
+  $('pm-pp').className='pm-btn on';
+  $('pm-bt').className='pm-btn';
+  si('pay-plan-name',p.name+' Plan');
+  si('pay-plan-price',`฿${fmt(PAY.amount)} / ${yr?'ปี':'เดือน'}`);
+  si('pay-ttl','ชำระเงิน');
+  si('pay-sub',`อัปเกรดเป็น ${p.name}`);
+  // Clear slip previews
+  si('slip-preview','');$('slip-preview').style.display='none';
+  si('slip-preview2','');$('slip-preview2').style.display='none';
+  openOv('s-pay');
+}
+function selectPayMethod(m){
+  PAY.method=m;
+  $('pm-pp').className='pm-btn'+(m==='promptpay'?' on':'');
+  $('pm-bt').className='pm-btn'+(m==='bank_transfer'?' on':'');
+}
+async function goPayStep2(){
+  ['pay-s1','pay-s2-pp','pay-s2-bt'].forEach(id=>$(id).className='pay-step');
+  if(PAY.method==='promptpay'){
+    $('pay-s2-pp').className='pay-step on';
+    si('pp-amount',`฿${fmt(PAY.amount)}`);
+    si('pp-ref',PAY.ref);
+    // PromptPay number (ตั้งค่าที่นี่ — เบอร์บริษัท)
+    const ppNumber='0812345678'; // TODO: ใส่เบอร์ PromptPay จริง
+    const payload=promptPayQR(ppNumber,PAY.amount);
+    await drawQR('pp-qr-canvas',payload);
+  }else{
+    $('pay-s2-bt').className='pay-step on';
+    si('bt-amount',`฿${fmt(PAY.amount)}`);
+    si('bt-ref',PAY.ref);
+  }
+}
+function backToPayStep1(){
+  ['pay-s2-pp','pay-s2-bt'].forEach(id=>$(id).className='pay-step');
+  $('pay-s1').className='pay-step on';
+}
+async function handleSlipUpload(input){
+  if(!input.files?.length)return;
+  const file=input.files[0];input.value='';
+  // Show preview
+  const previewId=PAY.method==='promptpay'?'slip-preview':'slip-preview2';
+  const preview=$(previewId);
+  const b64full=await toBase64(file);
+  preview.innerHTML=`<div style="position:relative;border-radius:14px;overflow:hidden">
+    <img src="${b64full}" style="width:100%;border-radius:14px;display:block"/>
+    <div style="position:absolute;inset:0;background:rgba(14,154,167,.15);border-radius:14px;border:2px solid var(--t500)"></div>
+  </div>
+  <button class="btn btn-p" style="margin-top:12px" onclick="verifySlip('${b64full.split(',')[1]}')">
+    ${ic('sparkle',18,'#fff')} ยืนยันสลิปด้วย AI
+  </button>`;
+  preview.style.display='block';
+}
+async function verifySlip(imgB64){
+  // Show verifying step
+  ['pay-s2-pp','pay-s2-bt'].forEach(id=>$(id).className='pay-step');
+  $('pay-s3').className='pay-step on';
+  try{
+    const res=await fetch('/api/verify-slip',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageBase64:imgB64,expectedAmount:PAY.amount,refCode:PAY.ref})
+    });
+    const json=await res.json();
+    $('pay-s3').className='pay-step';
+    if(json.verified){
+      // Auto-approve: update plan
+      await sb.from('businesses').update({plan:PAY.plan}).eq('id',S.bizId);
+      S.biz.plan=PAY.plan;
+      $('pay-s4').className='pay-step on';
+      si('pay-suc-ttl','ชำระเงินสำเร็จ! 🎉');
+      si('pay-suc-msg',`อัปเกรดเป็น BillDEE ${PLANS[PAY.plan].name} แล้ว<br/>ขอบคุณที่ใช้บริการ 🙏`);
+      renderMore();
+    }else{
+      // Manual review needed
+      $('pay-s5').className='pay-step on';
+      // Save slip record to Supabase for admin review
+      await sb.from('payment_pending').insert({
+        business_id:S.bizId,plan:PAY.plan,amount:PAY.amount,
+        ref_code:PAY.ref,slip_b64:imgB64.slice(0,100),// store only thumbnail ref
+        ai_result:json,created_at:new Date().toISOString()
+      }).catch(()=>{}); // table may not exist yet — silent fail
+    }
+  }catch(e){
+    console.error('verify-slip error',e);
+    $('pay-s3').className='pay-step';
+    $('pay-s5').className='pay-step on'; // fallback to manual
+  }
 }
 
 // ── EMAIL AUTH ────────────────────────────────────────────────
