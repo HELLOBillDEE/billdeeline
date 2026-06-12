@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS customers (
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner access" ON customers
   USING (business_id IN (
-    SELECT id FROM businesses WHERE owner_uid = auth.uid()
+    SELECT id FROM businesses WHERE line_user_id = auth.uid()::text
   ));
 CREATE INDEX IF NOT EXISTS customers_biz_idx ON customers(business_id);
 
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS products (
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner access" ON products
   USING (business_id IN (
-    SELECT id FROM businesses WHERE owner_uid = auth.uid()
+    SELECT id FROM businesses WHERE line_user_id = auth.uid()::text
   ));
 CREATE INDEX IF NOT EXISTS products_biz_idx ON products(business_id);
 
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS documents (
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner access" ON documents
   USING (business_id IN (
-    SELECT id FROM businesses WHERE owner_uid = auth.uid()
+    SELECT id FROM businesses WHERE line_user_id = auth.uid()::text
   ));
 CREATE INDEX IF NOT EXISTS documents_biz_status_idx ON documents(business_id, status);
 CREATE INDEX IF NOT EXISTS documents_due_date_idx ON documents(due_date);
