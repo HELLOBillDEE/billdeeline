@@ -576,8 +576,31 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         </div>
       </div>
       <div><div class="fl-lbl">เลขที่บัญชีธนาคาร (ถ้ามี)</div><div class="fl-w"><input class="fl-in" id="f-bank-acc" placeholder="เช่น 123-4-56789-0"/></div></div>
-      <!-- ต้องใช้สำหรับ รายงานภาษีซื้อ/ขาย ตามแบบ สรรพากร -->
-      <div id="f-tax-fields-wrap">
+      <!-- ม.40 type + recurring (income only) -->
+      <div id="f-m40-wrap" style="display:none">
+        <div class="fl-lbl">ประเภทเงินได้ (มาตรา 40)</div>
+        <select class="fl-in" id="f-m40-type" style="font-size:13.5px;padding:9px 12px">
+          <option value="">— ไม่ระบุ —</option>
+          <option value="m40_1">ม.40(1) เงินเดือน / ค่าจ้าง</option>
+          <option value="m40_2">ม.40(2) นายหน้า / ค่าธรรมเนียม</option>
+          <option value="m40_3">ม.40(3) ลิขสิทธิ์</option>
+          <option value="m40_5a">ม.40(5) ค่าเช่าบ้าน / โรงเรือน</option>
+          <option value="m40_5b">ม.40(5) ค่าเช่ายานพาหนะ</option>
+          <option value="m40_6a">ม.40(6) วิชาชีพอิสระ (แพทย์)</option>
+          <option value="m40_6b">ม.40(6) วิชาชีพอิสระ (อื่น ๆ)</option>
+          <option value="m40_7">ม.40(7) รับเหมา</option>
+          <option value="m40_8">ม.40(8) รายได้อื่น ๆ</option>
+        </select>
+      </div>
+      <div id="f-recurring-wrap" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:700">รายได้ประจำ (รายเดือน)</div>
+            <div style="font-size:12px;color:var(--i3);margin-top:2px">บันทึกล่วงหน้าทุกเดือนในปีนี้</div>
+          </div>
+          <button class="tgl t-off" id="f-rec-tgl" onclick="togRecurring()"><div class="tgl-k"></div></button>
+        </div>
+      </div>
         <div><div class="fl-lbl" id="f-party-tax-lbl">เลขประจำตัวผู้เสียภาษีของผู้ขาย</div><div class="fl-w"><input class="fl-in" id="f-party-taxid" placeholder="13 หลัก (สำหรับรายงานภาษีซื้อ)" maxlength="13"/></div></div>
         <div style="margin-top:10px"><div class="fl-lbl">สถานประกอบการ (00000=สนง.ใหญ่)</div><div class="fl-w"><input class="fl-in" id="f-party-branch" placeholder="00000" value="00000" maxlength="5"/></div></div>
       </div>
@@ -1770,24 +1793,36 @@ function pitTotalAllow(grossIncome,netAfterExp){
 }
 function renderPITIncomeRows(){
   const rows=S.pitIncomes;
+  const sysCount=rows.filter(r=>r.fromSystem).length;
+  let html='';
+  if(sysCount>0){
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="flex:1;height:1px;background:var(--ln)"></div>
+      <span style="font-size:11px;color:var(--i3);white-space:nowrap">ดึงจากระบบ • ปีภาษี ${S.pitYear||'2567'}</span>
+      <div style="flex:1;height:1px;background:var(--ln)"></div>
+    </div>`;
+  }
   if(!rows.length){
-    si('pit-income-rows','<div style="text-align:center;color:var(--i3);font-size:13px;padding:12px 0 4px">ยังไม่มีแหล่งรายได้</div>');
+    si('pit-income-rows','<div style="text-align:center;color:var(--i3);font-size:13px;padding:8px 0">ยังไม่มีรายได้ในระบบ กด "+ เพิ่มแหล่งรายได้" เพื่อกรอกเอง</div>');
     return;
   }
-  si('pit-income-rows',rows.map((r,i)=>{
+  html+=rows.map((r,i)=>{
     const t=PIT_TYPES[r.type]||PIT_TYPES.m40_8;
     const amt=parseFloat(r.amount)||0;
     const ded=calcExpenseDeduction(r);
     const opts=Object.entries(PIT_TYPES).map(([k,v])=>`<option value="${k}"${k===r.type?' selected':''}>${v.label}</option>`).join('');
-    return `<div style="background:var(--card);border-radius:18px;padding:14px 16px;margin-bottom:10px">
+    const sysTag=r.fromSystem?`<span style="background:rgba(57,194,207,.15);color:var(--t700);border-radius:6px;padding:1px 7px;font-size:10px;font-weight:700">${r.count} รายการ</span>`:'';
+    return `<div style="background:var(--card);border-radius:18px;padding:14px 16px;margin-bottom:10px;${r.fromSystem?'border:1px solid rgba(57,194,207,.25)':''}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="background:var(--t700);color:#fff;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">${t.short}</span>
         <select class="fl-in" style="flex:1;font-size:12.5px;padding:5px 8px" onchange="pitRowType(${i},this.value)">${opts}</select>
+        ${sysTag}
         <button onclick="removePitRow(${i})" style="background:none;border:none;color:var(--i3);font-size:18px;cursor:pointer;padding:0 2px;line-height:1">×</button>
       </div>
+      ${r.fromSystem?`<div style="font-size:11px;color:var(--i3);margin-bottom:6px">ดึงจากรายการที่บันทึกไว้ · แก้ไขได้ถ้าต้องการ</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
         <div>
-          <div style="font-size:11px;color:var(--i3);margin-bottom:3px">รายได้ (บาท)</div>
+          <div style="font-size:11px;color:var(--i3);margin-bottom:3px">รายได้รวมทั้งปี (บาท)</div>
           <input class="fl-in" type="number" inputmode="decimal" placeholder="0" value="${r.amount||''}" oninput="pitRowAmt(${i},this.value)" style="font-size:14px;padding:7px 10px"/>
         </div>
         <div>
@@ -1797,7 +1832,8 @@ function renderPITIncomeRows(){
       </div>
       ${amt>0?`<div style="font-size:12px;color:var(--i3)">หักค่าใช้จ่าย ${Math.round(t.rate*100)}%${t.max?` (สูงสุด ฿${fmt2(t.max)})`:''}  = <span style="color:var(--t700);font-weight:700">฿${fmt2(ded)}</span></div>`:''}
     </div>`;
-  }).join(''));
+  }).join('');
+  si('pit-income-rows',html);
 }
 function renderPIT(){
   renderPITIncomeRows();
@@ -1855,6 +1891,51 @@ function pitAdj(key,delta){
   renderPIT();
 }
 function pitAllowIn(key,val){S.pitAllow[key]=val;renderPIT();}
+function loadPITFromTxns(){
+  // Aggregate income transactions for the selected tax year into pitIncomes
+  const thYear=parseInt(S.pitYear||'2567');
+  const adYear=thYear-543; // Gregorian
+  const yearInc=S.txns.filter(t=>t.kind==='income'&&t.txn_date&&t.txn_date.startsWith(String(adYear)));
+  // Also pull from all transactions if bizId has data beyond current month filter
+  // Group by m40_type, sum amounts and WHT
+  const grouped={};
+  yearInc.forEach(t=>{
+    const key=t.m40_type||'m40_8';
+    if(!grouped[key])grouped[key]={type:key,amount:0,wht:0,count:0};
+    grouped[key].amount+=parseFloat(t.amount)||0;
+    grouped[key].wht+=(parseFloat(t.wht_amount)||0)+(parseFloat(t.wht)||0);
+    grouped[key].count++;
+  });
+  S.pitIncomes=Object.values(grouped).map(g=>({
+    type:g.type,amount:String(Math.round(g.amount*100)/100),
+    wht:String(Math.round(g.wht*100)/100),fromSystem:true,count:g.count
+  }));
+}
+async function loadPITAllYear(){
+  // Fetch full year income if we only have current month in S.txns
+  if(!S.bizId)return;
+  const thYear=parseInt(S.pitYear||'2567');
+  const adYear=thYear-543;
+  const{data}=await sb.from('transactions')
+    .select('amount,wht_amount,vat,kind,m40_type,txn_date')
+    .eq('business_id',S.bizId)
+    .eq('kind','income')
+    .gte('txn_date',`${adYear}-01-01`)
+    .lte('txn_date',`${adYear}-12-31`);
+  if(!data)return;
+  const grouped={};
+  data.forEach(t=>{
+    const key=t.m40_type||'m40_8';
+    if(!grouped[key])grouped[key]={type:key,amount:0,wht:0,count:0};
+    grouped[key].amount+=parseFloat(t.amount)||0;
+    grouped[key].wht+=(parseFloat(t.wht_amount)||0);
+    grouped[key].count++;
+  });
+  S.pitIncomes=Object.values(grouped).map(g=>({
+    type:g.type,amount:String(Math.round(g.amount*100)/100),
+    wht:String(Math.round(g.wht*100)/100),fromSystem:true,count:g.count
+  }));
+}
 function openPIT(){
   openOv('s-pit');
   const sel=$('pit-year-sel');if(sel)sel.value=S.pitYear||'2567';
@@ -1863,7 +1944,9 @@ function openPIT(){
     if(btn){btn.className='chip '+(S.pitAllow[k]?'c-on':'c-off');btn.textContent=S.pitAllow[k]?'มี':'ไม่มี';}
   });
   const cc=$('pit-children-cnt');if(cc)cc.textContent=S.pitAllow.children||0;
-  renderPIT();
+  // Load from system transactions then refresh
+  loadPITAllYear().then(()=>renderPIT());
+  renderPIT(); // show immediately with cached data
 }
 
 // ── SCAN FLOW ─────────────────────────────────────────────────
@@ -2021,6 +2104,9 @@ function openEntry(mode){
     if($('f-bank-acc'))$('f-bank-acc').value=S.biz?.bank_account||'';
     if($('f-party-taxid'))$('f-party-taxid').value='';
     if($('f-party-branch'))$('f-party-branch').value='00000';
+    if($('f-m40-type'))$('f-m40-type').value='';
+    S.eRecurring=false;
+    if($('f-rec-tgl'))$('f-rec-tgl').className='tgl t-off';
   }else{
     const t=S.txns.find(x=>x.id===mode);if(!t)return;
     S.eTxnId=t.id;si('ent-ttl','แก้ไขรายการ');$('ent-del').style.display='flex';si('ent-del',ic('trash',20,'var(--red)'));
@@ -2032,6 +2118,9 @@ function openEntry(mode){
     if($('f-bank-acc'))$('f-bank-acc').value=t.bank_account||'';
     if($('f-party-taxid'))$('f-party-taxid').value=t.vendor_tax_id||'';
     if($('f-party-branch'))$('f-party-branch').value=t.vendor_branch||'00000';
+    if($('f-m40-type'))$('f-m40-type').value=t.m40_type||'';
+    S.eRecurring=false;
+    const rt=$('f-rec-tgl');if(rt)rt.className='tgl t-off';
   }
   renderCatChips('f-cats',CATS,S.selCat);setKind(S.eKind);setEntWHT(S.eWHT);setPayMethod(S.ePayMethod);updEntryCalc();
   closeOv('s-ext');openOv('s-entry');
@@ -2048,6 +2137,8 @@ function setKind(k){
     if($('f-party-tax-lbl'))$('f-party-tax-lbl').textContent='เลขประจำตัวผู้เสียภาษีของผู้ขาย';
     if($('f-party-taxid'))$('f-party-taxid').placeholder='13 หลัก (สำหรับรายงานภาษีซื้อ)';
     if($('f-tax-fields-wrap'))$('f-tax-fields-wrap').style.display='';
+    if($('f-m40-wrap'))$('f-m40-wrap').style.display='none';
+    if($('f-recurring-wrap'))$('f-recurring-wrap').style.display='none';
   }else{
     si2.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:var(--green);color:#fff;font-family:inherit;cursor:pointer';
     se.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:transparent;color:var(--i3);font-family:inherit;cursor:pointer';
@@ -2057,6 +2148,8 @@ function setKind(k){
     if($('f-party-tax-lbl'))$('f-party-tax-lbl').textContent='เลขประจำตัวผู้เสียภาษีของลูกค้า';
     if($('f-party-taxid'))$('f-party-taxid').placeholder='13 หลัก (สำหรับรายงานภาษีขาย)';
     if($('f-tax-fields-wrap'))$('f-tax-fields-wrap').style.display='';
+    if($('f-m40-wrap'))$('f-m40-wrap').style.display='';
+    if($('f-recurring-wrap'))$('f-recurring-wrap').style.display='';
   }
   updEntryCalc();
 }
@@ -2120,10 +2213,11 @@ async function saveEntry(){
     doc_no:$('f-docno')?.value||'',
     vendor_tax_id:$('f-party-taxid')?.value||'',
     vendor_branch:$('f-party-branch')?.value||'00000',
+    m40_type:$('f-m40-type')?.value||null,
     date:$('f-dt').value||todayISO(),txn_date:$('f-dt').value||todayISO(),
     note:$('f-note')?.value||'',source:'manual'
   };
-  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account'];
+  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account','m40_type'];
   let err;
   if(S.eTxnId){({error:err}=await sb.from('transactions').update(row).eq('id',S.eTxnId));}
   else{({error:err}=await sb.from('transactions').insert(row));}
@@ -2133,7 +2227,26 @@ async function saveEntry(){
     else{({error:err}=await sb.from('transactions').insert(slim));}
   }
   if(err){alert('บันทึกไม่สำเร็จ: '+err.message);return}
-  closeOv('s-entry');await loadTxns();toast(S.eTxnId?'แก้ไขรายการแล้ว':'บันทึกรายการแล้ว');
+  // recurring: create entries for remaining months of this year
+  if(S.eRecurring&&!S.eTxnId&&row.kind==='income'){
+    const today=new Date();const yr=today.getFullYear();
+    const startM=today.getMonth()+1; // current month already saved above, create rest
+    const bulk=[];
+    for(let m=startM+1;m<=12;m++){
+      const d=`${yr}-${String(m).padStart(2,'0')}-01`;
+      bulk.push({...row,txn_date:d,date:d,doc_no:genDocNo('income'),note:(row.note||'')+'[รายประจำ]'});
+    }
+    if(bulk.length){
+      const slim=bulk.map(r=>{const b={...r};BETA_COLS.forEach(c=>{if(!(c in row))delete b[c];});return b;});
+      await sb.from('transactions').insert(slim);
+      toast(`บันทึกรายประจำ ${bulk.length+1} เดือน ถึงธ.ค. ${yr}`);
+    }else{toast('บันทึกรายการแล้ว');}
+  }else{toast(S.eTxnId?'แก้ไขรายการแล้ว':'บันทึกรายการแล้ว');}
+  closeOv('s-entry');await loadTxns();
+}
+function togRecurring(){
+  S.eRecurring=!S.eRecurring;
+  const tgl=$('f-rec-tgl');if(tgl)tgl.className='tgl '+(S.eRecurring?'t-on':'t-off');
 }
 async function delEntry(){
   if(!S.eTxnId||!confirm('ลบรายการนี้?'))return;

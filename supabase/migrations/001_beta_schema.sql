@@ -56,7 +56,8 @@ ALTER TABLE transactions
   ADD COLUMN IF NOT EXISTS wht_rate       NUMERIC(4,2) DEFAULT 0,
   ADD COLUMN IF NOT EXISTS wht_amount     NUMERIC(12,2) DEFAULT 0,
   ADD COLUMN IF NOT EXISTS pay_method     TEXT DEFAULT 'โอนเงิน',
-  ADD COLUMN IF NOT EXISTS bank_account   TEXT;
+  ADD COLUMN IF NOT EXISTS bank_account   TEXT,
+  ADD COLUMN IF NOT EXISTS m40_type      TEXT;   -- ม.40 category for personal income tax
 
 -- Sync type ↔ kind for existing rows
 UPDATE transactions SET type = kind WHERE type IS NULL AND kind IS NOT NULL;
