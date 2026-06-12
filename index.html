@@ -1323,40 +1323,40 @@ const CFG={
 
 // ── PLANS ─────────────────────────────────────────────────────
 const PLANS={
-  basic:{key:'basic',name:'Basic',price:0,tag:'เริ่มต้นฟรี',popular:false,
-    desc:'เหมาะสำหรับ Freelancer และผู้มีรายได้ทางเดียว ใช้งานได้เลยโดยไม่มีค่าใช้จ่าย',
+  basic:{key:'basic',name:'Basic',price:109,trialDays:14,tag:'ทดลองฟรี 14 วัน',popular:false,
+    desc:'เหมาะสำหรับ Freelancer และบุคคลธรรมดาที่มีรายได้หลายทาง ทดลองใช้ฟรี 14 วัน จากนั้น ฿109/เดือน',
     features:[
       {t:'บันทึกรายรับ-รายจ่าย ไม่จำกัด',v:true},
       {t:'สแกนบิลด้วย AI (10 ครั้ง/เดือน)',v:true},
       {t:'รายงาน P&L รายเดือน',v:true},
-      {t:'คำนวณภาษีบุคคลธรรมดา (ม.40)',v:true},
+      {t:'คำนวณภาษีบุคคลธรรมดา ม.40 + ลดหย่อน',v:true},
       {t:'ออกใบเสนอราคา / ใบแจ้งหนี้',v:false},
       {t:'รายงาน VAT ภ.พ.30 + WHT ภ.ง.ด.3/53',v:false},
       {t:'กระทบยอดธนาคาร (Bank Recon)',v:false},
       {t:'จัดการลูกค้า / สินค้า',v:false}
     ]},
-  smart:{key:'smart',name:'Smart',price:199,tag:'ยอดนิยม 🔥',popular:true,
-    desc:'เหมาะกับ SME และเจ้าของกิจการที่ต้องการบัญชีครบวงจร ราคาถูกกว่าคู่แข่ง 3 เท่า',
+  smart:{key:'smart',name:'Smart',price:499,trialDays:0,tag:'ยอดนิยม 🔥',popular:true,
+    desc:'ครบทุกฟีเจอร์ที่ SME ต้องการ ถูกกว่า FlowAccount กว่า 2 เท่า ไม่ต้องจ้างนักบัญชี',
     features:[
-      {t:'สแกนบิลด้วย AI ไม่จำกัด (PNG/JPG/PDF)',v:true},
-      {t:'ออกเอกสารครบ 6 ประเภท (ตามมาตรฐาน สรรพากร)',v:true},
+      {t:'สแกนบิลด้วย AI ไม่จำกัด (ถ่าย/PNG/JPG/PDF)',v:true},
+      {t:'ออกเอกสาร 6 ประเภท ตามมาตรฐานสรรพากร',v:true},
       {t:'รายงาน VAT ภ.พ.30 (format กรมสรรพากร)',v:true},
       {t:'รายงาน WHT ภ.ง.ด.3 + ภ.ง.ด.53',v:true},
       {t:'P&L Dashboard + กระทบยอดธนาคาร',v:true},
-      {t:'จัดการลูกค้า / สินค้า-บริการ',v:true},
-      {t:'คำนวณภาษีบุคคลธรรมดา (ม.40 ทุกประเภท)',v:true},
+      {t:'จัดการลูกค้า / สินค้า-บริการ ไม่จำกัด',v:true},
+      {t:'คำนวณภาษีบุคคลธรรมดา ม.40 ทุกประเภท',v:true},
       {t:'หลายกิจการ / หลายผู้ใช้',v:false}
     ]},
-  pro:{key:'pro',name:'Pro',price:449,tag:'ทีม & หลายสาขา',popular:false,
-    desc:'ทุกฟีเจอร์ใน Smart บวกรองรับทีมบัญชีและธุรกิจหลายสาขา',
+  pro:{key:'pro',name:'Pro',price:1190,trialDays:0,tag:'ทีม & หลายสาขา',popular:false,
+    desc:'ทุกฟีเจอร์ใน Smart รองรับทีมบัญชี 5 คน และธุรกิจหลายกิจการในแอปเดียว',
     features:[
       {t:'ทุกอย่างใน Smart ไม่มีข้อจำกัด',v:true},
-      {t:'ผู้ใช้งานหลายคน (สูงสุด 5 คน)',v:true},
+      {t:'ผู้ใช้งานสูงสุด 5 คน พร้อมจัดการสิทธิ์',v:true},
       {t:'จัดการหลายกิจการในแอปเดียว',v:true},
       {t:'ส่งออก PDF ทุกเอกสาร (ใบกำกับฯ / ใบเสร็จ)',v:true},
-      {t:'API Integration (Zapier / n8n)',v:'เร็ว ๆ นี้'},
       {t:'สรุปภาษีรายปี ภ.ง.ด.90/91 พร้อมยื่น',v:'เร็ว ๆ นี้'},
-      {t:'Priority Support ตอบใน 4 ชั่วโมง',v:true}
+      {t:'API Integration (Zapier / n8n)',v:'เร็ว ๆ นี้'},
+      {t:'Priority Support ตอบภายใน 4 ชั่วโมง',v:true}
     ]}
 };
 
@@ -2420,14 +2420,16 @@ function renderPlans(){
   const yr=S.cycle==='yearly';const curr=S.biz?.plan||'basic';
   si('plan-list',Object.values(PLANS).map(p=>{
     const sel=S.selPlan===p.key;const price=yr&&p.price>0?Math.round(p.price*10):p.price;const dk=sel&&p.popular;
+    const trialBadge=p.trialDays>0?`<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.15);color:#16a34a;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;margin-bottom:6px">🎁 ทดลองฟรี ${p.trialDays} วัน</div>`:'';
     return`<div class="plan-c ${sel?'sel':''} ${dk?'dk':''}" onclick="selPlan('${p.key}')" style="color:${dk?'#fff':'var(--ink)'}">
       ${p.popular?`<div class="pop-badge">★ ${p.tag}</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div><div style="font-weight:800;font-size:19px">BillDEE ${p.name}</div><div style="font-size:12px;opacity:.7">${p.tag}</div></div>
         <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${sel?'var(--t500)':'transparent'};border:${sel?'none':'2px solid var(--ln)'}">${sel?ic('check',15,'#fff'):''}</div>
       </div>
-      <div style="font-size:31px;font-weight:800;letter-spacing:-.5px;margin:10px 0 2px">${price===0?'ฟรี':`฿${fmt(price)}`}</div>
-      <div style="font-size:13px;opacity:.65;margin-bottom:12px">${price>0?`/ ${yr?'ปี':'เดือน'}`:'ตลอดชีพ'}</div>
+      ${trialBadge}
+      <div style="font-size:31px;font-weight:800;letter-spacing:-.5px;margin:6px 0 2px">฿${fmt(price)}</div>
+      <div style="font-size:13px;opacity:.65;margin-bottom:12px">/ ${yr?'ปี':'เดือน'}${p.trialDays>0?' · หลังทดลองฟรี':''}</div>
       <p style="font-size:12.5px;opacity:.7;margin:0 0 13px;line-height:1.4">${p.desc}</p>
       <div style="border-top:1px solid ${dk?'rgba(255,255,255,.15)':'var(--ln)'};padding-top:13px;display:flex;flex-direction:column;gap:10px">
         ${p.features.map(f=>`<div class="feat ${f.v===false?'off':''}">
@@ -2444,20 +2446,15 @@ function selPlan(k){S.selPlan=k;renderPlans();updUpgBtn()}
 function updUpgBtn(){
   const p=PLANS[S.selPlan];const isCurr=S.selPlan===(S.biz?.plan||'basic');const yr=S.cycle==='yearly';
   const price=yr&&p.price>0?Math.round(p.price*10):p.price;
-  si('btn-upg',`${ic(isCurr?'check':'crown',19,'#fff')}${isCurr?'นี่คือแพ็กเกจปัจจุบัน':p.price===0?'เปลี่ยนเป็น Basic':`อัปเกรดเป็น ${p.name} · ฿${fmt(price)}`}`);
+  const btnTxt=isCurr?'นี่คือแพ็กเกจปัจจุบัน':p.trialDays>0?`ทดลองฟรี ${p.trialDays} วัน → ${p.name}`:`อัปเกรดเป็น ${p.name} · ฿${fmt(price)}`;
+  si('btn-upg',`${ic(isCurr?'check':'crown',19,'#fff')}${btnTxt}`);
   const b=$('btn-upg');if(b){b.disabled=isCurr;b.className=`btn ${isCurr?'btn-g':'btn-p'}`;}
 }
 function applyPlan(){
   const p=PLANS[S.selPlan];
   if(S.selPlan===(S.biz?.plan||'basic'))return;
-  if(p.price===0){
-    // Downgrade to Basic — no payment needed
-    sb.from('businesses').update({plan:'basic'}).eq('id',S.bizId).then(({error})=>{
-      if(error){alert('เปลี่ยนแพ็กเกจไม่สำเร็จ');return}
-      S.biz.plan='basic';closeOv('s-sub');renderMore();toast('เปลี่ยนเป็น Basic แล้ว');
-    });
-    return;
-  }
+  // All plans require payment (Basic has trialDays free then ฿109)
+  // No more free plan — proceed to payment flow for all
   // Open payment flow
   closeOv('s-sub');
   openPayment(S.selPlan,S.cycle);
@@ -2497,7 +2494,7 @@ async function drawQR(canvasId,text){
 }
 
 function openPayment(planKey,cycle){
-  const p=PLANS[planKey];if(!p||p.price===0)return;
+  const p=PLANS[planKey];if(!p)return;
   const yr=cycle==='yearly';
   PAY.plan=planKey;PAY.cycle=cycle||'monthly';
   PAY.amount=yr?Math.round(p.price*10):p.price;
@@ -2511,9 +2508,11 @@ function openPayment(planKey,cycle){
   $('pm-pp').className='pm-btn on';
   $('pm-bt').className='pm-btn';
   si('pay-plan-name',p.name+' Plan');
-  si('pay-plan-price',`฿${fmt(PAY.amount)} / ${yr?'ปี':'เดือน'}`);
+  const trialNote=p.trialDays>0?` (ทดลองฟรี ${p.trialDays} วันก่อน)`:'';
+  si('pay-plan-price',`฿${fmt(PAY.amount)} / ${yr?'ปี':'เดือน'}${trialNote}`);
   si('pay-ttl','ชำระเงิน');
-  si('pay-sub',`อัปเกรดเป็น ${p.name}`);
+  si('pay-sub',p.trialDays>0?`เริ่มทดลองฟรี ${p.trialDays} วัน`:`อัปเกรดเป็น ${p.name}`);
+  const tb=$('pay-trial-badge');if(tb)tb.style.display=p.trialDays>0?'flex':'none';
   // Clear slip previews
   si('slip-preview','');$('slip-preview').style.display='none';
   si('slip-preview2','');$('slip-preview2').style.display='none';
