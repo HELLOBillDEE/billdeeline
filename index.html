@@ -196,6 +196,29 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mnu-btn{width:100%;background:none;border:none;display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s}
 .mnu-btn:active{background:var(--t50)}
 .mnu-ic{width:38px;height:38px;border-radius:11px;background:var(--t50);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* DOC GENERATOR */
+.dtab{flex:1;height:40px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:transparent;color:var(--i3);font-family:inherit;cursor:pointer;transition:all .15s}
+.dtab.on{background:var(--t600);color:#fff}
+.di-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--ln)}
+.di-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.di-in{border:none;outline:none;background:#f4f9fa;border-radius:9px;padding:9px 10px;font-family:inherit;font-size:13.5px;color:var(--ink);width:100%}
+.di-in:focus{box-shadow:inset 0 0 0 1.5px var(--t500)}
+.di-del{width:30px;height:30px;border-radius:9px;border:none;background:rgba(226,85,99,.1);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:8px}
+.di-del:hover{background:rgba(226,85,99,.2)}
+/* DOC PDF */
+.doc-pdf-wrap{background:#fff;padding:16mm;font-size:10pt;color:#000;line-height:1.6;max-width:780px;margin:0 auto}
+.doc-pdf-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.doc-pdf-title{font-size:18pt;font-weight:800;color:#0e9aa7;margin-bottom:4px}
+.doc-pdf-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:9pt}
+.doc-pdf-table th{background:#0e9aa7;color:#fff;padding:7px 10px;text-align:left;font-weight:600}
+.doc-pdf-table th:last-child,.doc-pdf-table td:last-child{text-align:right}
+.doc-pdf-table td{padding:6px 10px;border-bottom:1px solid #e4eef0}
+.doc-pdf-table tr:nth-child(even) td{background:#f8fcfd}
+.doc-pdf-totals{margin-left:auto;width:280px;font-size:9.5pt}
+.doc-pdf-totals tr td:last-child{text-align:right;font-weight:600}
+.doc-pdf-totals .net-row{background:#0e9aa7;color:#fff;font-size:11pt;font-weight:800}
+.doc-pdf-totals .net-row td{padding:7px 10px;border-radius:4px}
+.doc-pdf-totals td{padding:5px 8px}
 </style>
 <template id="__bundler_thumbnail" data-bg-color="#0b6b73">
   <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
@@ -322,7 +345,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         <button class="qb" onclick="openScan()"><div class="qb-ic" id="q1"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">สแกนบิล</span></button>
         <button class="qb" onclick="openEntry('new')"><div class="qb-ic" id="q2"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">บันทึกเอง</span></button>
         <button class="qb" onclick="switchTab('report')"><div class="qb-ic" id="q3"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">รายงาน</span></button>
-        <button class="qb" onclick="openSubscribe()"><div class="qb-ic" id="q4"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">แพ็กเกจ</span></button>
+        <button class="qb" onclick="openDocGen()"><div class="qb-ic" id="q4"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">ออกบิล</span></button>
       </div>
       <div class="ai-bar" onclick="openSubscribe()">
         <div class="ai-ic" id="ai-ic"></div>
@@ -627,6 +650,44 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- DOCUMENT GENERATOR -->
+<div class="bd-ov" id="s-doc">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-doc')" id="doc-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ออกเอกสาร</div><div style="font-size:12px;color:var(--i3)">ใบเสนอราคา · ใบแจ้งหนี้ · ใบกำกับภาษี</div></div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div style="display:flex;background:#fff;border-radius:14px;padding:4px;box-shadow:inset 0 0 0 1.5px var(--ln);margin:8px 0 16px">
+      <button class="dtab on" id="dt-quote" onclick="setDocType('quotation')">ใบเสนอราคา</button>
+      <button class="dtab" id="dt-invoice" onclick="setDocType('invoice')">ใบแจ้งหนี้</button>
+      <button class="dtab" id="dt-tax" onclick="setDocType('tax_invoice')">ใบกำกับภาษี</button>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:12px">ข้อมูลลูกค้า</div>
+      <div class="fl-w" style="margin-bottom:10px"><input class="fl-in" id="dc-name" placeholder="ชื่อลูกค้า / บริษัท *" oninput="updateDocSummary()"/></div>
+      <div class="fl-w" style="margin-bottom:10px"><input class="fl-in" id="dc-taxid" placeholder="เลขประจำตัวผู้เสียภาษี (ถ้ามี)" oninput="updateDocSummary()"/></div>
+      <div class="fl-w"><textarea class="fl-in fl-ta" id="dc-addr" placeholder="ที่อยู่ลูกค้า" oninput="updateDocSummary()"></textarea></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--i2)">รายการสินค้า / บริการ</div>
+        <button onclick="addDocItem()" style="border:none;background:var(--t50);color:var(--t700);font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:9px;font-family:inherit;cursor:pointer">+ เพิ่มรายการ</button>
+      </div>
+      <div id="doc-items"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><div style="font-weight:700;font-size:14.5px">รวม VAT 7%</div><div style="font-size:12.5px;color:var(--i3);margin-top:2px">ภาษีมูลค่าเพิ่ม</div></div>
+      <button class="tgl t-on" id="doc-vat" onclick="togDocVAT()"><div class="tgl-k"></div></button>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ภาษีหัก ณ ที่จ่าย (WHT)</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap" id="doc-wht"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px;background:var(--ink);color:#fff" id="doc-summary"></div>
+    <button class="btn btn-p" onclick="genDocPDF()" id="doc-gen-btn" style="margin-bottom:30px"></button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"><div class="t-ic-wrap" id="ti"></div><span id="tm"></span></div>
 
@@ -752,6 +813,48 @@ function toast(msg){si('ti',ic('check',15,'#fff'));si('tm',esc(msg));const t=$('
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function toBase64(f){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsDataURL(f)})}
 
+// ── Phase 1.1: Image Compression + Contrast ───────────────────
+// Resize to max 1600px, convert to JPEG 0.82 quality, boost contrast slightly.
+// Reduces payload size ~60-80%, improves OCR accuracy on dark/low-contrast receipts.
+async function compressImage(file,maxPx=1600,quality=0.82){
+  if(file.type==='application/pdf')return file; // PDFs skip canvas processing
+  return new Promise(resolve=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const ratio=Math.min(1,maxPx/Math.max(img.width,img.height));
+      const w=Math.round(img.width*ratio),h=Math.round(img.height*ratio);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      const ctx=cv.getContext('2d');
+      // Slight contrast boost for receipt OCR
+      ctx.filter='contrast(1.15) brightness(1.05)';
+      ctx.drawImage(img,0,0,w,h);
+      cv.toBlob(blob=>resolve(blob||file),'image/jpeg',quality);
+    };
+    img.onerror=()=>resolve(file);
+    img.src=url;
+  });
+}
+
+// ── Phase 1.2: VAT Auto-Extract ──────────────────────────────
+// If AI doesn't find VAT separately, back-calculate from total when likely VAT-inclusive.
+function autoExtractVat(ocrData){
+  if(!ocrData)return ocrData;
+  const total=+(ocrData.total_amount||0);
+  const vat=+(ocrData.vat_amount||0);
+  // If OCR returned zero VAT but has a total, compute from inclusive formula
+  if(total>0&&vat===0&&ocrData.has_vat!==false){
+    const before=Math.round((total/1.07)*100)/100;
+    const computed=Math.round((total-before)*100)/100;
+    // Only apply if computed VAT is non-trivial (>10 baht) — avoids false positives
+    if(computed>=10){
+      return{...ocrData,vat_amount:computed,subtotal:before,_vat_auto_extracted:true};
+    }
+  }
+  return ocrData;
+}
+
 // ── SCREENS ───────────────────────────────────────────────────
 function showScreen(id){['s-load','s-login','s-onboard','s-main'].forEach(s=>hd(s));sh(id)}
 function openOv(id){$(id)?.classList.add('on')}
@@ -782,7 +885,7 @@ function paintIcons(){
   // home
   si('notif-ic',ic('bell',21,'#0f2a30'));si('ic-arr-dn',ic('arrowDown',13,'#fff'));si('ic-arr-up',ic('arrowUp',13,'#fff'));
   si('ai-ic',ic('sparkle',24,'#7fdce4'));si('ai-chev',ic('chevR',20,'rgba(255,255,255,.5)'));
-  si('q1',ic('camera',22,'#0e9aa7'));si('q2',ic('edit',22,'#0e9aa7'));si('q3',ic('chart',22,'#0e9aa7'));si('q4',ic('crown',22,'#0e9aa7'));
+  si('q1',ic('camera',22,'#0e9aa7'));si('q2',ic('edit',22,'#0e9aa7'));si('q3',ic('chart',22,'#0e9aa7'));si('q4',ic('doc',22,'#0e9aa7'));
   // scan
   si('cap-x',ic('x',22,'#fff'));si('cap-fl',ic('flash',20,'#fff'));si('cap-gal',ic('gallery',22,'#fff'));si('cap-ln',ic('line',22,'#06C755'));
   si('ana-ic',ic('sparkle',46,'#39c2cf'));
@@ -1012,7 +1115,7 @@ function renderMore(){
     {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี Google Drive',fn:'openBiz()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
-    {i:'doc',l:'เอกสารภาษี',s:'บิลซื้อ-บิลขาย รายงาน VAT',fn:"toast('เร็วๆ นี้ใน Smart/Pro')"},
+    {i:'doc',l:'ออกเอกสาร / ใบกำกับภาษี',s:'ใบเสนอราคา · ใบแจ้งหนี้ · WHT',fn:'openDocGen()'},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
   ];
   si('more-menu',`<div style="padding:4px 0">${menu.map((m,i)=>`<button class="mnu-btn" onclick="${m.fn}" style="${i<menu.length-1?'border-bottom:1px solid var(--ln)':''}">
@@ -1038,9 +1141,10 @@ async function handleFile(input){
   };
   tick();const iv=setInterval(tick,700);
   try{
-    const b64=await toBase64(file);
+    const compressed=await compressImage(file);
+    const b64=await toBase64(compressed);
     const imgB64=b64.split(',')[1];
-    S.ocrImage=imgB64; S.ocrImageType=file.type; // เก็บไว้ส่ง Drive ภายหลัง
+    S.ocrImage=imgB64; S.ocrImageType='image/jpeg'; // เก็บไว้ส่ง Drive ภายหลัง
     const res=await fetch(CFG.OCR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       imageBase64:imgB64,mediaType:file.type,
       businessName:S.biz?.name||'',ownerName:S.biz?.owner||'',taxId:S.biz?.tax_id||''
@@ -1048,7 +1152,7 @@ async function handleFile(input){
     const json=await res.json();
     clearInterval(iv);for(let i=cur;i<STEPS.length;i++){tick();await sleep(200);}
     await sleep(400);closeOv('s-ana');
-    S.ocrRes=json.success&&json.data?json.data:null;
+    S.ocrRes=autoExtractVat(json.success&&json.data?json.data:null);
     S.ocrCat=S.ocrRes?.category||'วัตถุดิบ';
     showExtracted();
   }catch(e){
@@ -1476,6 +1580,211 @@ function openPDF(){
 }
 function closePDF(){hd('pdf-wrap')}
 function printPDF(){window.print()}
+
+// ── DOCUMENT GENERATOR ────────────────────────────────────────
+// Thai Tax Calculation Engine (inline — mirrors src/lib/taxEngine.ts)
+const TAX={
+  VAT_RATE:0.07,
+  VALID_WHT:[0,1,1.5,3,5,10],
+  round(n){return Math.round((n+Number.EPSILON)*100)/100},
+  calcSubtotal(items){return this.round(items.reduce((s,it)=>s+this.round(it.qty*it.price),0))},
+  calculate(items,inclVat,whtRate){
+    const subtotal=this.calcSubtotal(items);
+    const vatAmt=inclVat?this.round(subtotal*this.VAT_RATE):0;
+    const totalWithVat=this.round(subtotal+vatAmt);
+    const whtAmt=whtRate>0?this.round(subtotal*(whtRate/100)):0;
+    const netPayable=this.round(totalWithVat-whtAmt);
+    return{subtotal,vatAmt,totalWithVat,whtAmt,netPayable};
+  },
+  extractVat(amtInclVat){
+    const before=this.round(amtInclVat/1.07);
+    return{before,vat:this.round(amtInclVat-before)};
+  }
+};
+
+// Doc state
+const DOC={
+  type:'quotation',   // quotation | invoice | tax_invoice
+  inclVat:true,
+  whtRate:0,
+  items:[],           // [{desc, qty, price}]
+  docNo:'',
+};
+const DOC_LABELS={quotation:'ใบเสนอราคา',invoice:'ใบแจ้งหนี้',tax_invoice:'ใบกำกับภาษีอย่างย่อ'};
+const WHT_OPTIONS=[
+  {rate:0,label:'ไม่หัก'},
+  {rate:1,label:'1% — สินค้าทั่วไป'},
+  {rate:1.5,label:'1.5% — ขนส่ง'},
+  {rate:3,label:'3% — บริการ'},
+  {rate:5,label:'5% — เช่า / วิชาชีพ'},
+  {rate:10,label:'10% — เงินปันผล'},
+];
+
+function openDocGen(){
+  // Generate doc number
+  const d=new Date();
+  const yy=String(d.getFullYear()+543).slice(-2);
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  DOC.docNo=`${yy}${mm}-${String(Math.floor(Math.random()*9000)+1000)}`;
+  DOC.type='quotation';DOC.inclVat=true;DOC.whtRate=0;
+  DOC.items=[{desc:'',qty:1,price:0}];
+  // Reset form
+  const nm=$('dc-name');if(nm)nm.value='';
+  const tx=$('dc-taxid');if(tx)tx.value='';
+  const ad=$('dc-addr');if(ad)ad.value='';
+  // Reset type tabs
+  ['dt-quote','dt-invoice','dt-tax'].forEach(id=>$(id)?.classList.remove('on'));
+  $('dt-quote')?.classList.add('on');
+  // VAT toggle
+  const v=$('doc-vat');if(v){v.className='tgl t-on';}
+  si('doc-gen-btn',`${ic('doc',19,'#fff')} สร้างเอกสาร PDF`);
+  si('doc-bk',ic('chevL',22,'#0f2a30'));
+  renderDocItems();renderDocWHT();updateDocSummary();
+  openOv('s-doc');
+}
+function setDocType(t){
+  DOC.type=t;
+  const map={quotation:'dt-quote',invoice:'dt-invoice',tax_invoice:'dt-tax'};
+  ['dt-quote','dt-invoice','dt-tax'].forEach(id=>$(id)?.classList.remove('on'));
+  $(map[t])?.classList.add('on');
+  updateDocSummary();
+}
+function togDocVAT(){
+  DOC.inclVat=!DOC.inclVat;
+  const v=$('doc-vat');if(!v)return;
+  v.className=`tgl ${DOC.inclVat?'t-on':'t-off'}`;
+  updateDocSummary();
+}
+function renderDocWHT(){
+  si('doc-wht',WHT_OPTIONS.map(o=>
+    `<button class="chip ${DOC.whtRate===o.rate?'c-on':'c-off'}" onclick="setDocWHT(${o.rate})">${o.label}</button>`
+  ).join(''));
+}
+function setDocWHT(rate){
+  DOC.whtRate=rate;
+  renderDocWHT();updateDocSummary();
+}
+function addDocItem(){
+  DOC.items.push({desc:'',qty:1,price:0});
+  renderDocItems();updateDocSummary();
+}
+function removeDocItem(idx){
+  if(DOC.items.length<=1){toast('ต้องมีอย่างน้อย 1 รายการ');return}
+  DOC.items.splice(idx,1);
+  renderDocItems();updateDocSummary();
+}
+function renderDocItems(){
+  si('doc-items',DOC.items.map((it,i)=>`
+    <div class="di-row">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <input class="di-in" placeholder="รายการสินค้า/บริการ *" value="${esc(it.desc)}"
+          oninput="DOC.items[${i}].desc=this.value;updateDocSummary()"/>
+        <div style="display:flex;gap:6px">
+          <input class="di-in" type="number" inputmode="decimal" placeholder="จำนวน" value="${it.qty}"
+            style="width:80px" oninput="DOC.items[${i}].qty=+this.value||0;updateDocSummary()"/>
+          <input class="di-in" type="number" inputmode="decimal" placeholder="ราคาต่อหน่วย (฿)" value="${it.price||''}"
+            style="flex:1" oninput="DOC.items[${i}].price=+this.value||0;updateDocSummary()"/>
+        </div>
+        <div style="font-size:12px;color:var(--i3);text-align:right">รวม ฿${fmt2(TAX.round((it.qty||0)*(it.price||0)))}</div>
+      </div>
+      <button class="di-del" onclick="removeDocItem(${i})" title="ลบรายการ">${ic('trash',14,'var(--red)')}</button>
+    </div>`).join(''));
+}
+function updateDocSummary(){
+  const validItems=DOC.items.filter(it=>it.qty>0&&it.price>=0);
+  if(!validItems.length){
+    si('doc-summary',`<div style="padding:14px;text-align:center;opacity:.6;font-size:13.5px">กรอกรายการสินค้าเพื่อดูยอดรวม</div>`);
+    return;
+  }
+  const {subtotal,vatAmt,totalWithVat,whtAmt,netPayable}=TAX.calculate(validItems,DOC.inclVat,DOC.whtRate);
+  const rows=[
+    ['ยอดก่อน VAT',`฿${fmt2(subtotal)}`],
+    ...(DOC.inclVat?[[`VAT 7%`,`฿${fmt2(vatAmt)}`]]:[]),
+    ['ยอดรวม',`฿${fmt2(totalWithVat)}`],
+    ...(DOC.whtRate>0?[[`หักภาษี ณ ที่จ่าย ${DOC.whtRate}%`,`−฿${fmt2(whtAmt)}`]]:[]),
+  ];
+  si('doc-summary',`<div style="padding:14px">
+    ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:7px;opacity:.85">
+      <span>${l}</span><span>${v}</span>
+    </div>`).join('')}
+    <div style="border-top:1px solid rgba(255,255,255,.2);margin:10px 0 8px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:14px;font-weight:700">${DOC.whtRate>0?'ยอดที่โอนให้':'ยอดสุทธิ'}</span>
+      <span style="font-size:24px;font-weight:800;color:#7fdce4">฿${fmt2(netPayable)}</span>
+    </div>
+  </div>`);
+}
+function genDocPDF(){
+  const custName=($('dc-name')?.value||'').trim();
+  const custTaxId=($('dc-taxid')?.value||'').trim();
+  const custAddr=($('dc-addr')?.value||'').trim();
+  if(!custName){toast('กรุณาระบุชื่อลูกค้า');$('dc-name')?.focus();return}
+  const validItems=DOC.items.filter(it=>it.desc.trim()&&it.qty>0);
+  if(!validItems.length){toast('กรุณากรอกรายการสินค้า/บริการอย่างน้อย 1 รายการ');return}
+  const {subtotal,vatAmt,totalWithVat,whtAmt,netPayable}=TAX.calculate(validItems,DOC.inclVat,DOC.whtRate);
+  const biz=S.biz||{};
+  const docLabel=DOC_LABELS[DOC.type]||'เอกสาร';
+  const today=todayISO();
+  const dueDate=new Date(today);dueDate.setDate(dueDate.getDate()+30);
+  const dueDateStr=dueDate.toISOString().slice(0,10);
+
+  const html=`<div class="doc-pdf-wrap">
+    <div class="doc-pdf-header">
+      <div>
+        <div style="font-size:22pt;font-weight:900;color:#0e9aa7;letter-spacing:-.5px">Bill<span style="color:#0b6b73">DEE</span></div>
+        <div style="font-size:10pt;font-weight:700;margin-top:4px">${esc(biz.name||'กิจการ')}</div>
+        ${biz.tax_id?`<div style="font-size:8.5pt;color:#555">เลขภาษี: ${esc(biz.tax_id)}</div>`:''}
+        ${biz.address?`<div style="font-size:8.5pt;color:#555">${esc(biz.address)}</div>`:''}
+        ${biz.phone?`<div style="font-size:8.5pt;color:#555">โทร: ${esc(biz.phone)}</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div class="doc-pdf-title">${docLabel}</div>
+        <div style="font-size:9pt;color:#555">เลขที่: <b>${esc(DOC.docNo)}</b></div>
+        <div style="font-size:9pt;color:#555">วันที่: <b>${today}</b></div>
+        ${DOC.type!=='quotation'?`<div style="font-size:9pt;color:#555">กำหนดชำระ: <b>${dueDateStr}</b></div>`:''}
+      </div>
+    </div>
+    <div style="background:#f4f9fa;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:8.5pt;color:#555;margin-bottom:4px">${DOC.type==='quotation'?'เสนอราคาถึง':'ลูกค้า'}</div>
+      <div style="font-weight:700;font-size:11pt">${esc(custName)}</div>
+      ${custTaxId?`<div style="font-size:8.5pt;color:#555">เลขภาษี: ${esc(custTaxId)}</div>`:''}
+      ${custAddr?`<div style="font-size:8.5pt;color:#555;white-space:pre-wrap">${esc(custAddr)}</div>`:''}
+    </div>
+    <table class="doc-pdf-table">
+      <thead><tr>
+        <th style="width:50%">รายการ</th>
+        <th style="text-align:right">จำนวน</th>
+        <th style="text-align:right">ราคาต่อหน่วย</th>
+        <th style="text-align:right">รวม</th>
+      </tr></thead>
+      <tbody>${validItems.map(it=>`<tr>
+        <td>${esc(it.desc)}</td>
+        <td style="text-align:right">${it.qty}</td>
+        <td style="text-align:right">฿${fmt2(it.price)}</td>
+        <td style="text-align:right">฿${fmt2(TAX.round(it.qty*it.price))}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <table class="doc-pdf-totals" style="margin-left:auto;width:280px;font-size:9.5pt">
+      <tr><td>ยอดก่อน VAT</td><td style="text-align:right">฿${fmt2(subtotal)}</td></tr>
+      ${DOC.inclVat?`<tr><td>VAT 7%</td><td style="text-align:right">฿${fmt2(vatAmt)}</td></tr>
+      <tr><td>ยอดรวม VAT</td><td style="text-align:right">฿${fmt2(totalWithVat)}</td></tr>`:''}
+      ${DOC.whtRate>0?`<tr><td style="color:#e25563">หักภาษี ณ ที่จ่าย ${DOC.whtRate}%</td><td style="text-align:right;color:#e25563">−฿${fmt2(whtAmt)}</td></tr>`:''}
+      <tr style="background:#0e9aa7;color:#fff"><td style="font-weight:800;padding:8px 10px;border-radius:4px 0 0 4px">
+        ${DOC.whtRate>0?'ยอดที่โอนชำระ':'ยอดสุทธิ'}</td>
+        <td style="text-align:right;font-weight:800;font-size:12pt;padding:8px 10px;border-radius:0 4px 4px 0">฿${fmt2(netPayable)}</td></tr>
+    </table>
+    ${DOC.whtRate>0?`<div style="margin-top:14px;background:#fffbf0;border-radius:8px;padding:10px 14px;font-size:8.5pt;color:#92400e">
+      ⚠️ ผู้จ่ายเงินโปรดหัก ณ ที่จ่าย ${DOC.whtRate}% (฿${fmt2(whtAmt)}) แล้วโอนยอดสุทธิ ฿${fmt2(netPayable)} พร้อมส่ง ภ.ง.ด. ให้กรมสรรพากรภายในวันที่ 7 ของเดือนถัดไป
+    </div>`:''}
+    <div style="margin-top:20px;border-top:1px solid #e4eef0;padding-top:14px;display:flex;justify-content:space-between;font-size:8.5pt;color:#888">
+      <div>สร้างโดย BillDEE · billdee.app</div>
+      <div>${today}</div>
+    </div>
+  </div>`;
+
+  // Show in PDF wrap
+  si('pdf-content',html);sh('pdf-wrap');closeOv('s-doc');
+}
 
 // ── COPY TEXT REPORT ──────────────────────────────────────────
 async function copyReport(){
