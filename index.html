@@ -196,6 +196,24 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mnu-btn{width:100%;background:none;border:none;display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s}
 .mnu-btn:active{background:var(--t50)}
 .mnu-ic{width:38px;height:38px;border-radius:11px;background:var(--t50);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* CUSTOMER / PRODUCT / RECEIVABLE LISTS */
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 0;cursor:pointer;border-bottom:1px solid var(--ln)}
+.list-row:last-child{border-bottom:none}
+.list-av{width:42px;height:42px;border-radius:13px;background:var(--t50);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;font-size:17px;color:var(--t700)}
+.fab-add{position:fixed;right:20px;bottom:30px;width:56px;height:56px;border-radius:18px;background:var(--grad);border:none;color:#fff;box-shadow:0 10px 24px -6px rgba(11,107,115,.6);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:transform .12s}
+.fab-add:active{transform:scale(.92)}
+/* STATUS BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:700}
+.badge-green{background:rgba(22,160,111,.12);color:#16a06f}
+.badge-red{background:rgba(226,85,99,.12);color:#e25563}
+.badge-yellow{background:rgba(234,179,8,.12);color:#b45309}
+.badge-gray{background:var(--ln);color:var(--i3)}
+/* SHEET MODAL (bottom half) */
+.sheet{position:fixed;inset:0;z-index:90;display:none}
+.sheet.on{display:block}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.sheet-body{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:24px 24px 0 0;padding:22px 18px calc(env(safe-area-inset-bottom,0px)+24px);max-height:85vh;overflow-y:auto}
+.sheet-body::-webkit-scrollbar{display:none}
 /* PAYMENT */
 .pm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .pm-btn{background:#fff;border:2px solid var(--ln);border-radius:16px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .15s;font-family:inherit}
@@ -791,7 +809,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <button class="dtab" id="dt-tax" onclick="setDocType('tax_invoice')">ใบกำกับภาษี</button>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:12px">ข้อมูลลูกค้า</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--i2)">ข้อมูลลูกค้า</div>
+        <button onclick="openCustPicker()" style="border:none;background:var(--t50);color:var(--t700);font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:9px;font-family:inherit;cursor:pointer" id="dc-pick-cust">เลือกจากรายชื่อ</button>
+      </div>
       <div class="fl-w" style="margin-bottom:10px"><input class="fl-in" id="dc-name" placeholder="ชื่อลูกค้า / บริษัท *" oninput="updateDocSummary()"/></div>
       <div class="fl-w" style="margin-bottom:10px"><input class="fl-in" id="dc-taxid" placeholder="เลขประจำตัวผู้เสียภาษี (ถ้ามี)" oninput="updateDocSummary()"/></div>
       <div class="fl-w"><textarea class="fl-in fl-ta" id="dc-addr" placeholder="ที่อยู่ลูกค้า" oninput="updateDocSummary()"></textarea></div>
@@ -799,7 +820,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:700;color:var(--i2)">รายการสินค้า / บริการ</div>
-        <button onclick="addDocItem()" style="border:none;background:var(--t50);color:var(--t700);font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:9px;font-family:inherit;cursor:pointer">+ เพิ่มรายการ</button>
+        <div style="display:flex;gap:7px">
+          <button onclick="openProdPicker()" style="border:none;background:#f4f9fa;color:var(--i2);font-size:12px;font-weight:600;padding:6px 10px;border-radius:9px;font-family:inherit;cursor:pointer">📦 เลือกสินค้า</button>
+          <button onclick="addDocItem()" style="border:none;background:var(--t50);color:var(--t700);font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:9px;font-family:inherit;cursor:pointer">+ เพิ่มรายการ</button>
+        </div>
       </div>
       <div id="doc-items"></div>
     </div>
@@ -813,6 +837,133 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     </div>
     <div class="card" style="margin-bottom:14px;background:var(--ink);color:#fff" id="doc-summary"></div>
     <button class="btn btn-p" onclick="genDocPDF()" id="doc-gen-btn" style="margin-bottom:30px"></button>
+  </div>
+</div>
+
+<!-- ══ CUSTOMERS ══════════════════════════════════════════════ -->
+<div class="bd-ov" id="s-customers">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-customers')" id="cust-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ลูกค้า</div><div style="font-size:12px;color:var(--i3)" id="cust-sub">รายชื่อลูกค้าทั้งหมด</div></div>
+    <button class="ic-btn" onclick="openCustForm(null)" id="cust-add-btn"></button>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div class="fl-w" style="margin:8px 0 14px">
+      <span id="cust-srch-ic"></span>
+      <input class="fl-in" id="cust-search" placeholder="ค้นชื่อ / เลขภาษี…" oninput="renderCustList()"/>
+    </div>
+    <div id="cust-list"><div style="text-align:center;padding:44px;color:var(--i3)">กำลังโหลด…</div></div>
+    <div style="height:80px"></div>
+  </div>
+</div>
+
+<!-- Customer Form Sheet -->
+<div class="sheet" id="sheet-cust">
+  <div class="sheet-bg" onclick="closeSheet('sheet-cust')"></div>
+  <div class="sheet-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:16px;font-weight:800" id="cust-form-ttl">เพิ่มลูกค้า</div>
+      <button class="ic-btn" onclick="closeSheet('sheet-cust')" id="cust-form-x"></button>
+    </div>
+    <input type="hidden" id="cf-id"/>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><div class="fl-lbl">ชื่อลูกค้า / บริษัท *</div><div class="fl-w"><input class="fl-in" id="cf-name" placeholder="ชื่อลูกค้า"/></div></div>
+      <div><div class="fl-lbl">เลขผู้เสียภาษี</div><div class="fl-w"><input class="fl-in" id="cf-taxid" placeholder="เลขภาษี 13 หลัก" inputmode="numeric"/></div></div>
+      <div><div class="fl-lbl">เบอร์โทร</div><div class="fl-w"><input class="fl-in" id="cf-phone" type="tel" placeholder="0XX-XXX-XXXX"/></div></div>
+      <div><div class="fl-lbl">อีเมล</div><div class="fl-w"><input class="fl-in" id="cf-email" type="email" placeholder="email@example.com"/></div></div>
+      <div><div class="fl-lbl">ที่อยู่</div><div class="fl-w"><textarea class="fl-in fl-ta" id="cf-addr" placeholder="ที่อยู่สำหรับออกใบกำกับภาษี"></textarea></div></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-g btn-sm" style="flex:1" id="cf-del-btn" onclick="deleteCustomer()" style="display:none"></button>
+      <button class="btn btn-p btn-sm" style="flex:2" onclick="saveCustomer()" id="cf-save-btn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRODUCTS ═══════════════════════════════════════════════ -->
+<div class="bd-ov" id="s-products">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-products')" id="prod-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">สินค้า / บริการ</div><div style="font-size:12px;color:var(--i3)" id="prod-sub">รายการที่ใช้บ่อยในเอกสาร</div></div>
+    <button class="ic-btn" onclick="openProdForm(null)" id="prod-add-btn"></button>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div class="fl-w" style="margin:8px 0 14px">
+      <span id="prod-srch-ic"></span>
+      <input class="fl-in" id="prod-search" placeholder="ค้นชื่อสินค้า…" oninput="renderProdList()"/>
+    </div>
+    <div id="prod-list"><div style="text-align:center;padding:44px;color:var(--i3)">กำลังโหลด…</div></div>
+    <div style="height:80px"></div>
+  </div>
+</div>
+
+<!-- Product Form Sheet -->
+<div class="sheet" id="sheet-prod">
+  <div class="sheet-bg" onclick="closeSheet('sheet-prod')"></div>
+  <div class="sheet-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:16px;font-weight:800" id="prod-form-ttl">เพิ่มสินค้า/บริการ</div>
+      <button class="ic-btn" onclick="closeSheet('sheet-prod')" id="prod-form-x"></button>
+    </div>
+    <input type="hidden" id="pf-id"/>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><div class="fl-lbl">ชื่อสินค้า / บริการ *</div><div class="fl-w"><input class="fl-in" id="pf-name" placeholder="เช่น ออกแบบโลโก้, ค่าบริการรายเดือน"/></div></div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><div class="fl-lbl">ราคาต่อหน่วย (฿) *</div><div class="fl-w"><input class="fl-in" id="pf-price" type="number" inputmode="decimal" placeholder="0"/></div></div>
+        <div style="width:90px"><div class="fl-lbl">หน่วย</div><div class="fl-w"><input class="fl-in" id="pf-unit" placeholder="ชิ้น"/></div></div>
+      </div>
+      <div><div class="fl-lbl">หมวดหมู่</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px" id="pf-cats"></div>
+      </div>
+      <div><div class="fl-lbl">รายละเอียด (ใช้ใน PDF)</div><div class="fl-w"><textarea class="fl-in fl-ta" id="pf-desc" placeholder="รายละเอียดสินค้า/บริการ"></textarea></div></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-g btn-sm" style="flex:1" id="pf-del-btn" onclick="deleteProduct()" style="display:none"></button>
+      <button class="btn btn-p btn-sm" style="flex:2" onclick="saveProduct()" id="pf-save-btn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RECEIVABLES (ค้างจ่าย) ════════════════════════════════ -->
+<div class="bd-ov" id="s-recv">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-recv')" id="recv-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ค้างจ่าย (ลูกหนี้)</div><div style="font-size:12px;color:var(--i3)" id="recv-sub">ติดตามยอดที่ยังไม่ได้รับ</div></div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px" id="recv-stats"></div>
+    <!-- Filter chips -->
+    <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px" id="recv-filter"></div>
+    <!-- List -->
+    <div id="recv-list"><div style="text-align:center;padding:44px;color:var(--i3)">กำลังโหลด…</div></div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
+<!-- Customer Picker (for Doc Gen) -->
+<div class="sheet" id="sheet-cust-pick">
+  <div class="sheet-bg" onclick="closeSheet('sheet-cust-pick')"></div>
+  <div class="sheet-body">
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px">เลือกลูกค้า</div>
+    <div class="fl-w" style="margin-bottom:12px"><span id="cust-pick-srch-ic"></span>
+      <input class="fl-in" id="cust-pick-search" placeholder="ค้นชื่อ…" oninput="renderCustPickList()"/>
+    </div>
+    <div id="cust-pick-list"></div>
+    <button class="btn btn-g btn-sm" style="margin-top:12px" onclick="closeSheet('sheet-cust-pick')">ปิด</button>
+  </div>
+</div>
+
+<!-- Product Picker (for Doc Gen) -->
+<div class="sheet" id="sheet-prod-pick">
+  <div class="sheet-bg" onclick="closeSheet('sheet-prod-pick')"></div>
+  <div class="sheet-body">
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px">เลือกสินค้า / บริการ</div>
+    <div class="fl-w" style="margin-bottom:12px"><span id="prod-pick-srch-ic"></span>
+      <input class="fl-in" id="prod-pick-search" placeholder="ค้นชื่อ…" oninput="renderProdPickList()"/>
+    </div>
+    <div id="prod-pick-list"></div>
+    <button class="btn btn-g btn-sm" style="margin-top:12px" onclick="closeSheet('sheet-prod-pick')">ปิด</button>
   </div>
 </div>
 
@@ -1046,6 +1197,12 @@ function paintIcons(){
   if($('rg-bk'))$('rg-bk').innerHTML=ic('chevL',20,'rgba(255,255,255,.9)');
   if($('pdf-x'))$('pdf-x').innerHTML=ic('x',20,'#fff');
   if($('pdf-print-btn'))$('pdf-print-btn').innerHTML='🖨 พิมพ์ / Save PDF';
+  // customers / products / receivables
+  if($('cust-bk'))si('cust-bk',ic('chevL',22,'#0f2a30'));
+  if($('prod-bk'))si('prod-bk',ic('chevL',22,'#0f2a30'));
+  if($('recv-bk'))si('recv-bk',ic('chevL',22,'#0f2a30'));
+  if($('cust-pick-bk'))si('cust-pick-bk',ic('chevL',22,'#0f2a30'));
+  if($('prod-pick-bk'))si('prod-pick-bk',ic('chevL',22,'#0f2a30'));
   // subscribe
   si('sub-bk',ic('chevL',22,'#0f2a30'));si('sub-trust',`${ic('shield',16,'#8aa3a8')}<span>ยกเลิกได้ทุกเมื่อ · ชำระผ่าน LINE Pay</span>`);
   // logout
@@ -1245,9 +1402,12 @@ function renderMore(){
   </div>`);
   const menu=[
     {i:'building',l:'ข้อมูลธุรกิจ',s:'ชื่อร้าน เลขภาษี ที่อยู่ VAT',fn:'openBiz()'},
+    {i:'user',l:'ลูกค้า',s:`${CUSTS.length||0} ราย · auto-fill ใบเสนอราคา`,fn:'openCustomers()'},
+    {i:'store',l:'สินค้า / บริการ',s:`${PRODS.length||0} รายการ · เพิ่มเข้าเอกสารได้เลย`,fn:'openProducts()'},
+    {i:'wallet',l:'ค้างจ่าย (ลูกหนี้)',s:'ติดตามยอดที่ยังไม่ได้รับ',fn:'openReceivables()'},
+    {i:'doc',l:'ออกเอกสาร / ใบกำกับภาษี',s:'ใบเสนอราคา · ใบแจ้งหนี้ · WHT',fn:'openDocGen()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
-    {i:'doc',l:'ออกเอกสาร / ใบกำกับภาษี',s:'ใบเสนอราคา · ใบแจ้งหนี้ · WHT',fn:'openDocGen()'},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
   ];
   si('more-menu',`<div style="padding:4px 0">${menu.map((m,i)=>`<button class="mnu-btn" onclick="${m.fn}" style="${i<menu.length-1?'border-bottom:1px solid var(--ln)':''}">
@@ -2054,6 +2214,332 @@ function genDocPDF(){
   // Show in PDF wrap
   si('pdf-content',html);sh('pdf-wrap');closeOv('s-doc');
 }
+
+// ── CUSTOMERS ────────────────────────────────────────────────
+// In-memory cache; loaded from Supabase `customers` table
+// Falls back gracefully if table doesn't exist yet
+let CUSTS=[];
+
+async function loadCustomers(){
+  if(!S.bizId)return;
+  try{
+    const{data,error}=await sb.from('customers').select('*')
+      .eq('business_id',S.bizId).order('name');
+    if(!error)CUSTS=data||[];
+  }catch(e){CUSTS=[];}
+}
+function openCustomers(){
+  loadCustomers().then(()=>{renderCustList();});
+  si('cust-add-btn',ic('plus',20,'#0f2a30'));
+  si('cust-bk',ic('chevL',22,'#0f2a30'));
+  si('cust-srch-ic',ic('user',19,'#8aa3a8'));
+  openOv('s-customers');
+}
+function renderCustList(){
+  const q=($('cust-search')?.value||'').toLowerCase();
+  const list=CUSTS.filter(c=>!q||(c.name||'').toLowerCase().includes(q)||(c.tax_id||'').includes(q));
+  si('cust-sub',`${CUSTS.length} ราย`);
+  if(!list.length){
+    si('cust-list',`<div style="text-align:center;padding:44px;color:var(--i3)">${ic('user',38,'var(--i3)')}<div style="margin-top:10px;font-size:14px">${q?'ไม่พบลูกค้า':'ยังไม่มีลูกค้า — กด + เพิ่มเลย'}</div></div>`);
+    return;
+  }
+  si('cust-list',`<div class="card" style="padding:4px 18px">${list.map(c=>`
+    <div class="list-row" onclick="openCustForm('${c.id}')">
+      <div class="list-av">${(c.name||'?').charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</div>
+        <div style="font-size:12px;color:var(--i3);margin-top:2px">${c.tax_id?'เลขภาษี '+esc(c.tax_id):''}${c.phone?' · '+esc(c.phone):''}</div>
+      </div>
+      ${ic('chevR',18,'var(--i3)')}
+    </div>`).join('')}</div>`);
+}
+function openCustForm(id){
+  const c=id?CUSTS.find(x=>x.id===id):null;
+  si('cust-form-ttl',c?'แก้ไขลูกค้า':'เพิ่มลูกค้า');
+  si('cust-form-x',ic('x',20,'#0f2a30'));
+  si('cf-save-btn',`${ic('check',17,'#fff')}${c?'บันทึก':'เพิ่มลูกค้า'}`);
+  const delBtn=$('cf-del-btn');
+  if(delBtn){
+    delBtn.style.display=c?'flex':'none';
+    si('cf-del-btn',`${ic('trash',16,'var(--red)')}ลบ`);
+  }
+  $('cf-id').value=id||'';
+  $('cf-name').value=c?.name||'';$('cf-taxid').value=c?.tax_id||'';
+  $('cf-phone').value=c?.phone||'';$('cf-email').value=c?.email||'';
+  $('cf-addr').value=c?.address||'';
+  openSheet('sheet-cust');
+}
+async function saveCustomer(){
+  const name=($('cf-name').value||'').trim();
+  if(!name){toast('กรุณาระบุชื่อลูกค้า');return}
+  const id=$('cf-id').value;
+  const row={business_id:S.bizId,name,tax_id:($('cf-taxid').value||'').trim(),
+    phone:($('cf-phone').value||'').trim(),email:($('cf-email').value||'').trim(),
+    address:($('cf-addr').value||'').trim()};
+  const btn=$('cf-save-btn');if(btn)btn.disabled=true;
+  try{
+    if(id){
+      const{error}=await sb.from('customers').update(row).eq('id',id);
+      if(error)throw error;
+      const idx=CUSTS.findIndex(c=>c.id===id);
+      if(idx>=0)CUSTS[idx]={...CUSTS[idx],...row};
+    }else{
+      const{data,error}=await sb.from('customers').insert(row).select().single();
+      if(error)throw error;
+      CUSTS.push(data);
+    }
+    closeSheet('sheet-cust');renderCustList();toast(id?'แก้ไขลูกค้าแล้ว':'เพิ่มลูกค้าแล้ว ✓');
+  }catch(e){toast('บันทึกไม่สำเร็จ: '+(e.message||'ตรวจสอบ Supabase table "customers"'));}
+  if(btn)btn.disabled=false;
+}
+async function deleteCustomer(){
+  const id=$('cf-id').value;if(!id)return;
+  if(!confirm('ลบลูกค้ารายนี้?'))return;
+  await sb.from('customers').delete().eq('id',id);
+  CUSTS=CUSTS.filter(c=>c.id!==id);
+  closeSheet('sheet-cust');renderCustList();toast('ลบลูกค้าแล้ว');
+}
+// Called from Document Generator — pick customer and auto-fill
+function pickCustomer(c){
+  if($('dc-name'))$('dc-name').value=c.name||'';
+  if($('dc-taxid'))$('dc-taxid').value=c.tax_id||'';
+  if($('dc-addr'))$('dc-addr').value=c.address||'';
+  closeSheet('sheet-cust-pick');updateDocSummary();
+  toast('เลือกลูกค้า: '+c.name);
+}
+
+// ── PRODUCTS ──────────────────────────────────────────────────
+let PRODS=[];
+const PROD_CATS=['บริการ','สินค้า','ซอฟต์แวร์','ค่าบริการรายเดือน','ออกแบบ','ที่ปรึกษา','อื่น ๆ'];
+
+async function loadProducts(){
+  if(!S.bizId)return;
+  try{
+    const{data,error}=await sb.from('products').select('*')
+      .eq('business_id',S.bizId).order('name');
+    if(!error)PRODS=data||[];
+  }catch(e){PRODS=[];}
+}
+function openProducts(){
+  loadProducts().then(()=>renderProdList());
+  si('prod-add-btn',ic('plus',20,'#0f2a30'));
+  si('prod-bk',ic('chevL',22,'#0f2a30'));
+  si('prod-srch-ic',ic('store',19,'#8aa3a8'));
+  openOv('s-products');
+}
+function renderProdList(){
+  const q=($('prod-search')?.value||'').toLowerCase();
+  const list=PRODS.filter(p=>!q||(p.name||'').toLowerCase().includes(q));
+  si('prod-sub',`${PRODS.length} รายการ`);
+  if(!list.length){
+    si('prod-list',`<div style="text-align:center;padding:44px;color:var(--i3)">${ic('store',38,'var(--i3)')}<div style="margin-top:10px;font-size:14px">${q?'ไม่พบสินค้า':'ยังไม่มีสินค้า/บริการ — กด + เพิ่มเลย'}</div></div>`);
+    return;
+  }
+  si('prod-list',`<div class="card" style="padding:4px 18px">${list.map(p=>`
+    <div class="list-row" onclick="openProdForm('${p.id}')">
+      <div class="list-av" style="background:var(--t50)">${ic('store',20,'var(--t700)')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:700">${esc(p.name)}</div>
+        <div style="font-size:12px;color:var(--i3);margin-top:2px">฿${fmt2(p.unit_price)} / ${esc(p.unit||'หน่วย')} · ${esc(p.category||'บริการ')}</div>
+      </div>
+      ${ic('chevR',18,'var(--i3)')}
+    </div>`).join('')}</div>`);
+}
+function openProdForm(id){
+  const p=id?PRODS.find(x=>x.id===id):null;
+  si('prod-form-ttl',p?'แก้ไขสินค้า/บริการ':'เพิ่มสินค้า/บริการ');
+  si('prod-form-x',ic('x',20,'#0f2a30'));
+  si('pf-save-btn',`${ic('check',17,'#fff')}${p?'บันทึก':'เพิ่มรายการ'}`);
+  const delBtn=$('pf-del-btn');
+  if(delBtn){delBtn.style.display=p?'flex':'none';si('pf-del-btn',`${ic('trash',16,'var(--red)')}ลบ`);}
+  $('pf-id').value=id||'';$('pf-name').value=p?.name||'';
+  $('pf-price').value=p?.unit_price||'';$('pf-unit').value=p?.unit||'';
+  $('pf-desc').value=p?.description||'';
+  const selCat=p?.category||PROD_CATS[0];
+  si('pf-cats',PROD_CATS.map(c=>`<button class="chip ${selCat===c?'c-on':'c-off'}" onclick="selProdCat('${c}',this)">${c}</button>`).join(''));
+  openSheet('sheet-prod');
+}
+function selProdCat(c,btn){
+  btn.closest('.sheet-body').querySelectorAll('#pf-cats .chip').forEach(el=>el.className='chip c-off');
+  btn.className='chip c-on';
+}
+async function saveProduct(){
+  const name=($('pf-name').value||'').trim();
+  if(!name){toast('กรุณาระบุชื่อสินค้า/บริการ');return}
+  const price=+($('pf-price').value)||0;
+  const selCatEl=document.querySelector('#pf-cats .c-on');
+  const row={business_id:S.bizId,name,unit_price:price,
+    unit:($('pf-unit').value||'').trim()||'หน่วย',
+    category:selCatEl?.textContent||PROD_CATS[0],
+    description:($('pf-desc').value||'').trim()};
+  const id=$('pf-id').value;
+  const btn=$('pf-save-btn');if(btn)btn.disabled=true;
+  try{
+    if(id){
+      const{error}=await sb.from('products').update(row).eq('id',id);
+      if(error)throw error;
+      const idx=PRODS.findIndex(p=>p.id===id);
+      if(idx>=0)PRODS[idx]={...PRODS[idx],...row};
+    }else{
+      const{data,error}=await sb.from('products').insert(row).select().single();
+      if(error)throw error;
+      PRODS.push(data);
+    }
+    closeSheet('sheet-prod');renderProdList();toast(id?'แก้ไขแล้ว':'เพิ่มสินค้าแล้ว ✓');
+  }catch(e){toast('บันทึกไม่สำเร็จ: '+(e.message||'ตรวจสอบ Supabase table "products"'));}
+  if(btn)btn.disabled=false;
+}
+async function deleteProduct(){
+  const id=$('pf-id').value;if(!id)return;
+  if(!confirm('ลบรายการนี้?'))return;
+  await sb.from('products').delete().eq('id',id);
+  PRODS=PRODS.filter(p=>p.id!==id);
+  closeSheet('sheet-prod');renderProdList();toast('ลบรายการแล้ว');
+}
+// Called from Document Generator — insert product as a line item
+function pickProduct(p){
+  DOC.items.push({desc:p.name+(p.description?' — '+p.description:''),qty:1,price:p.unit_price||0});
+  renderDocItems();updateDocSummary();
+  closeSheet('sheet-prod-pick');toast('เพิ่ม: '+p.name);
+}
+
+// ── CUSTOMER PICKER (for Document Generator) ─────────────────────
+function openCustPicker(){
+  openSheet('sheet-cust-pick');
+  if(!CUSTS.length)loadCustomers().then(()=>renderCustPickList());
+  else renderCustPickList();
+}
+function renderCustPickList(){
+  const q=($('cust-pick-search')?.value||'').toLowerCase();
+  const list=CUSTS.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.tax_id||'').includes(q));
+  const el=$('cust-pick-list');if(!el)return;
+  if(!list.length){el.innerHTML=`<div style="text-align:center;padding:32px;color:var(--i3)">ไม่พบรายชื่อ</div>`;return;}
+  el.innerHTML=list.map(c=>`
+    <div class="list-row" onclick="selectDocCustomer(${JSON.stringify(JSON.stringify(c)).slice(1,-1)})">
+      <div class="list-av" style="background:var(--t100)">${(c.name||'?')[0]}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:14px">${c.name||''}</div>
+        <div style="font-size:12px;color:var(--i3)">${c.tax_id?'เลขภาษี: '+c.tax_id:c.phone||''}</div>
+      </div>
+    </div>`).join('');
+}
+function selectDocCustomer(cJson){
+  const c=JSON.parse(cJson);
+  // Fill document generator customer fields
+  if($('dc-cust'))$('dc-cust').value=c.name||'';
+  if($('dc-cust-addr'))$('dc-cust-addr').value=c.address||'';
+  if($('dc-cust-tax'))$('dc-cust-tax').value=c.tax_id||'';
+  if($('dc-pick-cust'))$('dc-pick-cust').textContent=c.name||'เลือกจากรายชื่อ';
+  closeSheet('sheet-cust-pick');toast('เลือก: '+(c.name||''));
+}
+
+// ── PRODUCT PICKER (for Document Generator) ──────────────────────
+function openProdPicker(){
+  openSheet('sheet-prod-pick');
+  if(!PRODS.length)loadProducts().then(()=>renderProdPickList());
+  else renderProdPickList();
+}
+function renderProdPickList(){
+  const q=($('prod-pick-search')?.value||'').toLowerCase();
+  const list=PRODS.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q));
+  const el=$('prod-pick-list');if(!el)return;
+  if(!list.length){el.innerHTML=`<div style="text-align:center;padding:32px;color:var(--i3)">ไม่พบสินค้า</div>`;return;}
+  el.innerHTML=list.map(p=>`
+    <div class="list-row" onclick="pickProduct(${JSON.stringify(JSON.stringify(p)).slice(1,-1)})">
+      <div class="list-av" style="background:#e8f6f8;color:var(--i2);font-size:18px">📦</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:14px">${p.name||''}</div>
+        <div style="font-size:12px;color:var(--i3)">${p.sku?'SKU: '+p.sku+' · ':''}<span style="color:var(--t700);font-weight:700">${(p.unit_price||0).toLocaleString('th-TH')} บาท</span></div>
+      </div>
+      <div style="font-size:20px;padding:6px">+</div>
+    </div>`).join('');
+}
+
+// ── RECEIVABLES (ค้างจ่าย) ────────────────────────────────────
+// Uses `documents` table from Phase 2 schema if available
+// Falls back to deriving from transactions with source='invoice'
+let RECV_FILTER='all';
+
+async function openReceivables(){
+  si('recv-bk',ic('chevL',22,'#0f2a30'));
+  openOv('s-recv');
+  await loadReceivables();
+}
+async function loadReceivables(){
+  si('recv-list',`<div style="text-align:center;padding:44px;color:var(--i3)">กำลังโหลด…</div>`);
+  let docs=[];
+  try{
+    // Try documents table first (Phase 2 schema)
+    const{data,error}=await sb.from('documents').select('*')
+      .eq('business_id',S.bizId)
+      .in('status',['sent','partial_paid','overdue'])
+      .order('due_date',{ascending:true});
+    if(!error)docs=data||[];
+  }catch(e){
+    // Fallback: use transactions where kind='income' and has_vat=true as proxy
+    docs=S.txns.filter(t=>t.kind==='income').map(t=>({
+      id:t.id,doc_no:t.id.slice(0,8).toUpperCase(),
+      customer_name:t.title||'ไม่ระบุลูกค้า',
+      net_payable:t.amount,paid_amount:0,
+      due_date:t.txn_date,status:'sent',doc_type:'invoice'
+    }));
+  }
+  renderReceivables(docs);
+}
+function renderReceivables(docs){
+  const now=new Date();
+  // Mark overdue in-memory
+  docs=docs.map(d=>{
+    if(d.due_date&&new Date(d.due_date)<now&&d.status==='sent')
+      return{...d,status:'overdue'};
+    return d;
+  });
+  const filtered=RECV_FILTER==='all'?docs:docs.filter(d=>d.status===RECV_FILTER);
+  // Stats
+  const total=docs.reduce((s,d)=>s+(+d.net_payable||0)-(+d.paid_amount||0),0);
+  const overdue=docs.filter(d=>d.status==='overdue').reduce((s,d)=>s+(+d.net_payable||0)-(+d.paid_amount||0),0);
+  si('recv-stats',[
+    {l:'ยอดค้างรับทั้งหมด',v:total,c:'var(--t700)',i:'wallet'},
+    {l:'เกินกำหนด',v:overdue,c:'var(--red)',i:'bell'},
+  ].map(s=>`<div class="sc"><div style="font-size:12px;color:var(--i2);display:flex;align-items:center;gap:5px;margin-bottom:4px">${ic(s.i,14,s.c)}${s.l}</div><div style="font-size:20px;font-weight:800;color:${s.c}">฿${fmt(s.v)}</div></div>`).join(''));
+  // Filter chips
+  const counts={all:docs.length,sent:docs.filter(d=>d.status==='sent').length,
+    overdue:docs.filter(d=>d.status==='overdue').length,
+    partial_paid:docs.filter(d=>d.status==='partial_paid').length};
+  const filters=[{k:'all',l:`ทั้งหมด (${counts.all})`},{k:'overdue',l:`เกินกำหนด (${counts.overdue})`},
+    {k:'sent',l:`รอรับ (${counts.sent})`},{k:'partial_paid',l:`บางส่วน (${counts.partial_paid})`}];
+  si('recv-filter',filters.map(f=>`<button class="chip ${RECV_FILTER===f.k?'c-on':'c-off'}" onclick="setRecvFilter('${f.k}')">${f.l}</button>`).join(''));
+  si('recv-sub',`ค้างรับ ${docs.length} รายการ · ฿${fmt(total)}`);
+  if(!filtered.length){
+    si('recv-list',`<div style="text-align:center;padding:44px;color:var(--i3)">${ic('check',38,'var(--green)')}<div style="margin-top:10px;font-size:14px;color:var(--green);font-weight:700">ไม่มียอดค้างรับ 🎉</div></div>`);
+    return;
+  }
+  const statusMap={sent:{l:'รอรับ',cls:'badge-yellow'},overdue:{l:'เกินกำหนด',cls:'badge-red'},
+    partial_paid:{l:'บางส่วน',cls:'badge-yellow'},paid:{l:'รับแล้ว',cls:'badge-green'}};
+  si('recv-list',`<div class="card" style="padding:4px 18px">${filtered.map((d,i)=>{
+    const outstanding=(+d.net_payable||0)-(+d.paid_amount||0);
+    const st=statusMap[d.status]||{l:d.status,cls:'badge-gray'};
+    const days=d.due_date?Math.ceil((new Date(d.due_date)-now)/86400000):null;
+    const daysStr=days===null?'':(days<0?`เกิน ${Math.abs(days)} วัน`:`ครบใน ${days} วัน`);
+    return`<div class="list-row" style="${i===filtered.length-1?'border-bottom:none':''}">
+      <div class="list-av" style="background:${d.status==='overdue'?'rgba(226,85,99,.1)':'var(--t50)'}">
+        ${ic('receipt',20,d.status==='overdue'?'var(--red)':'var(--t700)')}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.customer_name||'—')}</div>
+        <div style="font-size:12px;color:var(--i3);margin-top:2px">${esc(d.doc_no||'—')} · ${daysStr}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:800;font-size:15px;color:${d.status==='overdue'?'var(--red)':'var(--ink)'}">฿${fmt(outstanding)}</div>
+        <div class="badge ${st.cls}" style="margin-top:3px">${st.l}</div>
+      </div>
+    </div>`;}).join('')}</div>`);
+}
+function setRecvFilter(k){RECV_FILTER=k;loadReceivables();}
+
+// ── SHEET HELPERS ─────────────────────────────────────────────
+function openSheet(id){$(id)?.classList.add('on')}
+function closeSheet(id){$(id)?.classList.remove('on')}
 
 // ── COPY TEXT REPORT ──────────────────────────────────────────
 async function copyReport(){
