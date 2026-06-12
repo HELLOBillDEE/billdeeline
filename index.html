@@ -803,11 +803,15 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ออกเอกสาร</div><div style="font-size:12px;color:var(--i3)">ใบเสนอราคา · ใบแจ้งหนี้ · ใบกำกับภาษี</div></div>
   </div>
   <div class="scroll" style="flex:1;padding:0 18px">
-    <div style="display:flex;background:#fff;border-radius:14px;padding:4px;box-shadow:inset 0 0 0 1.5px var(--ln);margin:8px 0 16px">
+    <div style="overflow-x:auto;scrollbar-width:none;margin:8px 0 16px">
+    <div style="display:flex;background:#fff;border-radius:14px;padding:4px;box-shadow:inset 0 0 0 1.5px var(--ln);min-width:max-content">
       <button class="dtab on" id="dt-quote" onclick="setDocType('quotation')">ใบเสนอราคา</button>
       <button class="dtab" id="dt-invoice" onclick="setDocType('invoice')">ใบแจ้งหนี้</button>
       <button class="dtab" id="dt-tax" onclick="setDocType('tax_invoice')">ใบกำกับภาษี</button>
-    </div>
+      <button class="dtab" id="dt-receipt" onclick="setDocType('receipt')">ใบเสร็จ</button>
+      <button class="dtab" id="dt-delivery" onclick="setDocType('delivery_order')">ใบส่งสินค้า</button>
+      <button class="dtab" id="dt-voucher" onclick="setDocType('payment_voucher')">ใบสำคัญจ่าย</button>
+    </div></div>
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:700;color:var(--i2)">ข้อมูลลูกค้า</div>
@@ -964,6 +968,79 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     </div>
     <div id="prod-pick-list"></div>
     <button class="btn btn-g btn-sm" style="margin-top:12px" onclick="closeSheet('sheet-prod-pick')">ปิด</button>
+  </div>
+</div>
+
+<!-- ══ VAT SUMMARY (สรุปภาษีซื้อ-ภาษีขาย) ══════════════════════ -->
+<div class="bd-ov" id="s-vat">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-vat')" id="vat-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ภาษีซื้อ – ภาษีขาย</div><div style="font-size:12px;color:var(--i3)" id="vat-period-lbl">รายเดือน</div></div>
+    <select id="vat-month-sel" class="fl-in" style="width:auto;font-size:13px;padding:6px 10px" onchange="loadVatSummary()"></select>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px" id="vat-cards"></div>
+    <div class="card" style="margin-bottom:14px" id="vat-chart-wrap">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:12px">สัดส่วนภาษี</div>
+      <canvas id="vat-chart" width="280" height="140"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ภาษีขาย (Output VAT)</div>
+      <div id="vat-output-list"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ภาษีซื้อ (Input VAT)</div>
+      <div id="vat-input-list"></div>
+    </div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
+<!-- ══ WHT REPORT (ภาษีหัก ณ ที่จ่าย) ════════════════════════════ -->
+<div class="bd-ov" id="s-wht">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-wht')" id="wht-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ภาษีหัก ณ ที่จ่าย</div><div style="font-size:12px;color:var(--i3)" id="wht-period-lbl">รายเดือน</div></div>
+    <select id="wht-month-sel" class="fl-in" style="width:auto;font-size:13px;padding:6px 10px" onchange="loadWHTReport()"></select>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px" id="wht-cards"></div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">รายการหักภาษี ณ ที่จ่าย</div>
+      <div id="wht-list"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <button class="btn btn-p" onclick="exportWHTForm('3')" id="wht-btn3" style="font-size:13px;padding:12px 0">ภ.ง.ด.3</button>
+      <button class="btn btn-p" onclick="exportWHTForm('53')" id="wht-btn53" style="font-size:13px;padding:12px 0">ภ.ง.ด.53</button>
+    </div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
+<!-- ══ P&L DASHBOARD (กำไรขาดทุน) ════════════════════════════════ -->
+<div class="bd-ov" id="s-pnl">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-pnl')" id="pnl-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">กำไร & ขาดทุน</div><div style="font-size:12px;color:var(--i3)" id="pnl-period-lbl">สรุปรายเดือน</div></div>
+    <select id="pnl-month-sel" class="fl-in" style="width:auto;font-size:13px;padding:6px 10px" onchange="loadPNL()"></select>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:8px 0 16px" id="pnl-kpis"></div>
+    <!-- 6-month bar chart -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:12px">รายรับ – รายจ่าย 6 เดือน</div>
+      <canvas id="pnl-chart" width="320" height="160"></canvas>
+      <div style="display:flex;gap:14px;margin-top:10px;font-size:11.5px">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#0e9aa7;display:inline-block"></span>รายรับ</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#e25563;display:inline-block"></span>รายจ่าย</span>
+      </div>
+    </div>
+    <!-- P&L table -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:12px">งบกำไรขาดทุน</div>
+      <div id="pnl-table"></div>
+    </div>
+    <div style="height:30px"></div>
   </div>
 </div>
 
@@ -1197,12 +1274,17 @@ function paintIcons(){
   if($('rg-bk'))$('rg-bk').innerHTML=ic('chevL',20,'rgba(255,255,255,.9)');
   if($('pdf-x'))$('pdf-x').innerHTML=ic('x',20,'#fff');
   if($('pdf-print-btn'))$('pdf-print-btn').innerHTML='🖨 พิมพ์ / Save PDF';
-  // customers / products / receivables
+  // customers / products / receivables / reports
   if($('cust-bk'))si('cust-bk',ic('chevL',22,'#0f2a30'));
   if($('prod-bk'))si('prod-bk',ic('chevL',22,'#0f2a30'));
   if($('recv-bk'))si('recv-bk',ic('chevL',22,'#0f2a30'));
   if($('cust-pick-bk'))si('cust-pick-bk',ic('chevL',22,'#0f2a30'));
   if($('prod-pick-bk'))si('prod-pick-bk',ic('chevL',22,'#0f2a30'));
+  if($('vat-bk'))si('vat-bk',ic('chevL',22,'#0f2a30'));
+  if($('wht-bk'))si('wht-bk',ic('chevL',22,'#0f2a30'));
+  if($('wht-btn3'))$('wht-btn3').innerHTML=ic('doc',18,'#fff')+' ภ.ง.ด.3';
+  if($('wht-btn53'))$('wht-btn53').innerHTML=ic('doc',18,'#fff')+' ภ.ง.ด.53';
+  if($('pnl-bk'))si('pnl-bk',ic('chevL',22,'#0f2a30'));
   // subscribe
   si('sub-bk',ic('chevL',22,'#0f2a30'));si('sub-trust',`${ic('shield',16,'#8aa3a8')}<span>ยกเลิกได้ทุกเมื่อ · ชำระผ่าน LINE Pay</span>`);
   // logout
@@ -1405,7 +1487,10 @@ function renderMore(){
     {i:'user',l:'ลูกค้า',s:`${CUSTS.length||0} ราย · auto-fill ใบเสนอราคา`,fn:'openCustomers()'},
     {i:'store',l:'สินค้า / บริการ',s:`${PRODS.length||0} รายการ · เพิ่มเข้าเอกสารได้เลย`,fn:'openProducts()'},
     {i:'wallet',l:'ค้างจ่าย (ลูกหนี้)',s:'ติดตามยอดที่ยังไม่ได้รับ',fn:'openReceivables()'},
-    {i:'doc',l:'ออกเอกสาร / ใบกำกับภาษี',s:'ใบเสนอราคา · ใบแจ้งหนี้ · WHT',fn:'openDocGen()'},
+    {i:'doc',l:'ออกเอกสาร / ใบกำกับภาษี',s:'ใบเสนอราคา · ใบแจ้งหนี้ · ใบเสร็จ · ใบสำคัญจ่าย',fn:'openDocGen()'},
+    {i:'receipt',l:'ภาษีซื้อ – ภาษีขาย',s:'สรุป VAT รายเดือน · ภ.พ.30',fn:'openVatSummary()'},
+    {i:'chart',l:'ภาษีหัก ณ ที่จ่าย',s:'ภ.ง.ด.3 · ภ.ง.ด.53 · รายเดือน',fn:'openWHTReport()'},
+    {i:'chart',l:'กำไร & ขาดทุน (P&L)',s:'สรุปรายได้ ค่าใช้จ่าย กำไรสุทธิ',fn:'openPNL()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
@@ -2073,9 +2158,11 @@ function openDocGen(){
 }
 function setDocType(t){
   DOC.type=t;
-  const map={quotation:'dt-quote',invoice:'dt-invoice',tax_invoice:'dt-tax'};
-  ['dt-quote','dt-invoice','dt-tax'].forEach(id=>$(id)?.classList.remove('on'));
-  $(map[t])?.classList.add('on');
+  const map={quotation:'dt-quote',invoice:'dt-invoice',tax_invoice:'dt-tax',receipt:'dt-receipt',delivery_order:'dt-delivery',payment_voucher:'dt-voucher'};
+  ['dt-quote','dt-invoice','dt-tax','dt-receipt','dt-delivery','dt-voucher'].forEach(id=>$(id)?.classList.remove('on'));
+  if(map[t])$(map[t])?.classList.add('on');
+  const labels={quotation:'ใบเสนอราคา',invoice:'ใบแจ้งหนี้',tax_invoice:'ใบกำกับภาษี',receipt:'ใบเสร็จรับเงิน',delivery_order:'ใบส่งสินค้า',payment_voucher:'ใบสำคัญจ่าย'};
+  if($('doc-gen-btn'))$('doc-gen-btn').innerHTML=ic('doc',19,'#fff')+(labels[t]||'ออกเอกสาร');
   updateDocSummary();
 }
 function togDocVAT(){
@@ -2551,6 +2638,253 @@ async function copyReport(){
     `รายการล่าสุด:`,top5||'  (ยังไม่มีรายการ)',``,`— BillDEE AI —`].join('\n');
   try{await navigator.clipboard.writeText(text);toast('คัดลอกรายงานแล้ว — วางใน LINE ได้เลย');}
   catch(e){prompt('คัดลอกข้อความนี้:',text);}
+}
+
+// ── HELPER: build month options ───────────────────────────────
+function buildMonthOptions(selId,onChange){
+  const sel=$(selId);if(!sel)return;
+  const now=new Date();sel.innerHTML='';
+  for(let i=0;i<13;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const y=d.getFullYear(),mo=d.getMonth()+1;
+    const label=`${mo.toString().padStart(2,'0')}/${y+543}`;
+    const val=`${y}-${mo.toString().padStart(2,'0')}`;
+    const opt=document.createElement('option');
+    opt.value=val;opt.textContent=label;
+    if(i===0)opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+
+// ── VAT SUMMARY ──────────────────────────────────────────────
+function openVatSummary(){
+  openOv('s-vat');
+  buildMonthOptions('vat-month-sel','loadVatSummary');
+  loadVatSummary();
+}
+async function loadVatSummary(){
+  const mo=$('vat-month-sel')?.value||new Date().toISOString().slice(0,7);
+  si('vat-period-lbl',`ประจำเดือน ${mo.split('-')[1].padStart(2,'0')}/${parseInt(mo.split('-')[0])+543}`);
+  si('vat-cards',`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--i3)">กำลังโหลด…</div>`);
+  let txns=[];
+  try{
+    const{data}=await sb.from('transactions').select('*')
+      .eq('business_id',S.bizId)
+      .gte('date',mo+'-01')
+      .lte('date',mo+'-31');
+    txns=data||[];
+  }catch(e){}
+  const income=txns.filter(t=>t.type==='income');
+  const expense=txns.filter(t=>t.type==='expense');
+  const vatOut=income.reduce((s,t)=>s+(t.vat||0),0);
+  const vatIn=expense.reduce((s,t)=>s+(t.vat||0),0);
+  const netVat=vatOut-vatIn;
+  const fmt=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  si('vat-cards',`
+    <div class="card" style="background:var(--t50);padding:14px">
+      <div style="font-size:11.5px;color:var(--t700);font-weight:700">ภาษีขาย (Output)</div>
+      <div style="font-size:22px;font-weight:800;color:var(--t700);margin-top:4px">${fmt(vatOut)}</div>
+      <div style="font-size:11px;color:var(--i3)">${income.length} รายการ</div>
+    </div>
+    <div class="card" style="background:#fff0f0;padding:14px">
+      <div style="font-size:11.5px;color:#c0392b;font-weight:700">ภาษีซื้อ (Input)</div>
+      <div style="font-size:22px;font-weight:800;color:#c0392b;margin-top:4px">${fmt(vatIn)}</div>
+      <div style="font-size:11px;color:var(--i3)">${expense.length} รายการ</div>
+    </div>
+    <div class="card" style="grid-column:1/-1;background:${netVat>=0?'var(--t700)':'#e25563'};padding:14px">
+      <div style="font-size:12px;color:rgba(255,255,255,.8);font-weight:700">ภาษีสุทธิ (ต้องชำระ/ขอคืน)</div>
+      <div style="font-size:26px;font-weight:800;color:#fff;margin-top:4px">${netVat>=0?'+':''}${fmt(netVat)} บาท</div>
+      <div style="font-size:11.5px;color:rgba(255,255,255,.7)">${netVat>=0?'ต้องชำระ VAT':'สามารถขอคืน VAT ได้'}</div>
+    </div>
+  `);
+  // Draw donut chart on canvas
+  const canvas=$('vat-chart');
+  if(canvas&&(vatOut+vatIn>0)){
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const cx=70,cy=70,r=55,total=vatOut+vatIn;
+    const slices=[{v:vatOut,c:'#0e9aa7'},{v:vatIn,c:'#e25563'}];
+    let start=-Math.PI/2;
+    slices.forEach(sl=>{
+      const ang=(sl.v/total)*2*Math.PI;
+      ctx.beginPath();ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,start,start+ang);ctx.closePath();
+      ctx.fillStyle=sl.c;ctx.fill();start+=ang;
+    });
+    // center hole
+    ctx.beginPath();ctx.arc(cx,cy,30,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();
+    // Legend
+    const lx=150,ly=20;
+    [['ภาษีขาย','#0e9aa7',vatOut],['ภาษีซื้อ','#e25563',vatIn]].forEach(([lbl,c,v],i)=>{
+      ctx.fillStyle=c;ctx.fillRect(lx,ly+i*28,12,12);
+      ctx.fillStyle='#333';ctx.font='12px sans-serif';
+      ctx.fillText(`${lbl}`,lx+16,ly+i*28+11);
+      ctx.fillStyle='#0f2a30';ctx.font='bold 13px sans-serif';
+      ctx.fillText(`${fmt(v)}`,lx+16,ly+i*28+24);
+    });
+  }
+  const rowHtml=(t,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i>0?'border-top:1px solid var(--ln)':''}"><div style="font-size:12.5px">${t.title||t.vendor||'รายการ'}<br><span style="font-size:11px;color:var(--i3)">${t.date||''}</span></div><div style="font-weight:700;font-size:13px;text-align:right">${fmt(t.vat||0)}<br><span style="font-size:11px;color:var(--i3)">ยอด ${fmt(t.amount||0)}</span></div></div>`;
+  si('vat-output-list',income.length?income.map(rowHtml).join(''):`<div style="color:var(--i3);padding:12px;text-align:center">ไม่มีรายการ</div>`);
+  si('vat-input-list',expense.length?expense.map(rowHtml).join(''):`<div style="color:var(--i3);padding:12px;text-align:center">ไม่มีรายการ</div>`);
+}
+
+// ── WHT REPORT ───────────────────────────────────────────────
+function openWHTReport(){
+  openOv('s-wht');
+  buildMonthOptions('wht-month-sel','loadWHTReport');
+  loadWHTReport();
+}
+async function loadWHTReport(){
+  const mo=$('wht-month-sel')?.value||new Date().toISOString().slice(0,7);
+  si('wht-period-lbl',`ประจำเดือน ${mo.split('-')[1].padStart(2,'0')}/${parseInt(mo.split('-')[0])+543}`);
+  si('wht-list',`<div style="text-align:center;padding:24px;color:var(--i3)">กำลังโหลด…</div>`);
+  let txns=[];
+  try{
+    const{data}=await sb.from('transactions').select('*')
+      .eq('business_id',S.bizId)
+      .gte('date',mo+'-01').lte('date',mo+'-31')
+      .gt('wht_amount',0);
+    txns=data||[];
+  }catch(e){}
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalWHT=txns.reduce((s,t)=>s+(t.wht_amount||0),0);
+  const totalBase=txns.reduce((s,t)=>s+(t.amount||0),0);
+  si('wht-cards',`
+    <div class="card" style="background:var(--t50);padding:14px">
+      <div style="font-size:11.5px;color:var(--t700);font-weight:700">รายการทั้งหมด</div>
+      <div style="font-size:24px;font-weight:800;color:var(--t700)">${txns.length}</div>
+      <div style="font-size:11px;color:var(--i3)">รายการ</div>
+    </div>
+    <div class="card" style="background:var(--ink);padding:14px">
+      <div style="font-size:11.5px;color:rgba(255,255,255,.7);font-weight:700">ภาษีหัก ณ ที่จ่าย</div>
+      <div style="font-size:22px;font-weight:800;color:#fff">${fmt(totalWHT)}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5)">บาท</div>
+    </div>
+  `);
+  if(!txns.length){si('wht-list',`<div style="text-align:center;padding:32px;color:var(--i3)">ไม่มีรายการหักภาษี ณ ที่จ่าย</div>`);return;}
+  si('wht-list',`
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:0;font-size:12px;font-weight:700;color:var(--i3);padding:0 0 8px;border-bottom:1.5px solid var(--ln)">
+      <span>ผู้รับเงิน</span><span style="text-align:right">ฐาน</span><span style="text-align:right;padding-left:12px">ภาษีหัก</span>
+    </div>
+    ${txns.map((t,i)=>`
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:0;padding:10px 0;${i<txns.length-1?'border-bottom:1px solid var(--ln)':''}">
+        <div><div style="font-size:13px;font-weight:700">${t.vendor||t.title||'—'}</div><div style="font-size:11px;color:var(--i3)">${t.date||''} · WHT ${t.wht_rate||3}%</div></div>
+        <div style="text-align:right;font-size:13px">${fmt(t.amount)}</div>
+        <div style="text-align:right;font-size:13px;font-weight:700;color:var(--t700);padding-left:12px">${fmt(t.wht_amount)}</div>
+      </div>`).join('')}
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:0;padding:10px 0;border-top:2px solid var(--ink);font-weight:800">
+      <span>รวมทั้งสิ้น</span><span style="text-align:right">${fmt(totalBase)}</span><span style="text-align:right;padding-left:12px;color:var(--t700)">${fmt(totalWHT)}</span>
+    </div>`);
+}
+function exportWHTForm(formNo){
+  const mo=$('wht-month-sel')?.value||new Date().toISOString().slice(0,7);
+  const parts=mo.split('-');
+  const displayMo=`${parts[1]}/${parseInt(parts[0])+543}`;
+  toast(`ภ.ง.ด.${formNo} เดือน ${displayMo} — กำลังพัฒนาระบบ Export PDF`);
+}
+
+// ── P&L DASHBOARD ────────────────────────────────────────────
+function openPNL(){
+  openOv('s-pnl');
+  buildMonthOptions('pnl-month-sel','loadPNL');
+  loadPNL();
+}
+async function loadPNL(){
+  const mo=$('pnl-month-sel')?.value||new Date().toISOString().slice(0,7);
+  const parts=mo.split('-');
+  si('pnl-period-lbl',`ประจำเดือน ${parts[1]}/${parseInt(parts[0])+543}`);
+  si('pnl-kpis',`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--i3)">กำลังโหลด…</div>`);
+  // Fetch current month
+  let txns=[];
+  try{
+    const{data}=await sb.from('transactions').select('*')
+      .eq('business_id',S.bizId)
+      .gte('date',mo+'-01').lte('date',mo+'-31');
+    txns=data||[];
+  }catch(e){}
+  // Fetch 6 months for chart
+  const chartData=[];
+  const thaiMonths=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  for(let i=5;i>=0;i--){
+    const d=new Date(parseInt(parts[0]),parseInt(parts[1])-1-i,1);
+    const y=d.getFullYear(),m=d.getMonth()+1;
+    const key=`${y}-${m.toString().padStart(2,'0')}`;
+    let mTxns=[];
+    try{
+      const{data}=await sb.from('transactions').select('amount,type')
+        .eq('business_id',S.bizId)
+        .gte('date',key+'-01').lte('date',key+'-31');
+      mTxns=data||[];
+    }catch(e){}
+    chartData.push({
+      label:thaiMonths[m-1],
+      income:mTxns.filter(t=>t.type==='income').reduce((s,t)=>s+(t.amount||0),0),
+      expense:mTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0)
+    });
+  }
+  const totalIncome=txns.filter(t=>t.type==='income').reduce((s,t)=>s+(t.amount||0),0);
+  const totalExpense=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0);
+  const profit=totalIncome-totalExpense;
+  const fmt=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtK=n=>Math.abs(n)>=1000?(n/1000).toFixed(1)+'K':n.toFixed(0);
+  si('pnl-kpis',`
+    <div class="card" style="padding:12px;text-align:center">
+      <div style="font-size:11px;color:var(--t700);font-weight:700">รายรับ</div>
+      <div style="font-size:18px;font-weight:800;color:var(--t700)">${fmtK(totalIncome)}</div>
+    </div>
+    <div class="card" style="padding:12px;text-align:center">
+      <div style="font-size:11px;color:#e25563;font-weight:700">รายจ่าย</div>
+      <div style="font-size:18px;font-weight:800;color:#e25563">${fmtK(totalExpense)}</div>
+    </div>
+    <div class="card" style="padding:12px;text-align:center;background:${profit>=0?'var(--t700)':'#e25563'}">
+      <div style="font-size:11px;color:rgba(255,255,255,.8);font-weight:700">กำไร</div>
+      <div style="font-size:18px;font-weight:800;color:#fff">${fmtK(profit)}</div>
+    </div>
+  `);
+  // Draw bar chart
+  const canvas=$('pnl-chart');
+  if(canvas){
+    const ctx=canvas.getContext('2d');
+    const W=canvas.width,H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    const maxVal=Math.max(...chartData.map(d=>Math.max(d.income,d.expense)),1);
+    const pad=30,barW=18,gap=(W-pad*2)/(chartData.length)-barW*2;
+    chartData.forEach((d,i)=>{
+      const x=pad+i*((W-pad*2)/chartData.length);
+      const hI=((d.income/maxVal)*(H-40));
+      const hE=((d.expense/maxVal)*(H-40));
+      ctx.fillStyle='#0e9aa7';ctx.fillRect(x,H-20-hI,barW,hI);
+      ctx.fillStyle='#e25563';ctx.fillRect(x+barW+2,H-20-hE,barW,hE);
+      ctx.fillStyle='#666';ctx.font='10px sans-serif';ctx.textAlign='center';
+      ctx.fillText(d.label,x+barW,H-6);
+    });
+  }
+  // P&L table
+  const cats={};
+  txns.filter(t=>t.type==='expense').forEach(t=>{
+    const c=t.category||'อื่นๆ';
+    cats[c]=(cats[c]||0)+(t.amount||0);
+  });
+  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`
+    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--ln)">
+      <span style="font-size:13px">${c}</span>
+      <span style="font-size:13px;font-weight:700">${fmt(v)}</span>
+    </div>`).join('');
+  si('pnl-table',`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1.5px solid var(--ink)">
+      <span style="font-weight:800">รายได้จากการขาย / บริการ</span>
+      <span style="font-weight:800;color:var(--t700)">${fmt(totalIncome)}</span>
+    </div>
+    ${catRows}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)">
+      <span style="font-size:13px">รวมค่าใช้จ่าย</span>
+      <span style="font-size:13px;font-weight:700;color:#e25563">(${fmt(totalExpense)})</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid var(--ink)">
+      <span style="font-weight:800;font-size:15px">กำไรสุทธิ</span>
+      <span style="font-weight:800;font-size:15px;color:${profit>=0?'var(--t700)':'#e25563'}">${fmt(profit)}</span>
+    </div>
+  `);
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
