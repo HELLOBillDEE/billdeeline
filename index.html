@@ -551,6 +551,11 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         </div>
       </div>
       <div><div class="fl-lbl">เลขที่บัญชีธนาคาร (ถ้ามี)</div><div class="fl-w"><input class="fl-in" id="f-bank-acc" placeholder="เช่น 123-4-56789-0"/></div></div>
+      <!-- ต้องใช้สำหรับ รายงานภาษีซื้อ/ขาย ตามแบบ สรรพากร -->
+      <div id="f-tax-fields-wrap">
+        <div><div class="fl-lbl" id="f-party-tax-lbl">เลขประจำตัวผู้เสียภาษีของผู้ขาย</div><div class="fl-w"><input class="fl-in" id="f-party-taxid" placeholder="13 หลัก (สำหรับรายงานภาษีซื้อ)" maxlength="13"/></div></div>
+        <div style="margin-top:10px"><div class="fl-lbl">สถานประกอบการ (00000=สนง.ใหญ่)</div><div class="fl-w"><input class="fl-in" id="f-party-branch" placeholder="00000" value="00000" maxlength="5"/></div></div>
+      </div>
     </div>
     <!-- VAT + WHT -->
     <div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
@@ -1059,11 +1064,17 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <canvas id="vat-chart" width="280" height="140"></canvas>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ภาษีขาย (Output VAT)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:var(--i2)">ภาษีขาย (Output VAT)</div>
+        <button class="btn btn-g btn-sm" style="font-size:11.5px;padding:5px 10px" onclick="exportVATReport('output')">พิมพ์รายงานภาษีขาย</button>
+      </div>
       <div id="vat-output-list"></div>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:10px">ภาษีซื้อ (Input VAT)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:var(--i2)">ภาษีซื้อ (Input VAT)</div>
+        <button class="btn btn-g btn-sm" style="font-size:11.5px;padding:5px 10px" onclick="exportVATReport('input')">พิมพ์รายงานภาษีซื้อ</button>
+      </div>
       <div id="vat-input-list"></div>
     </div>
     <div style="height:30px"></div>
@@ -1717,6 +1728,8 @@ function openEntry(mode){
     if($('f-note'))$('f-note').value='';
     if($('f-docno'))$('f-docno').value=genDocNo(S.eKind);
     if($('f-bank-acc'))$('f-bank-acc').value=S.biz?.bank_account||'';
+    if($('f-party-taxid'))$('f-party-taxid').value='';
+    if($('f-party-branch'))$('f-party-branch').value='00000';
   }else{
     const t=S.txns.find(x=>x.id===mode);if(!t)return;
     S.eTxnId=t.id;si('ent-ttl','แก้ไขรายการ');$('ent-del').style.display='flex';si('ent-del',ic('trash',20,'var(--red)'));
@@ -1726,6 +1739,8 @@ function openEntry(mode){
     if($('f-note'))$('f-note').value=t.note||'';
     if($('f-docno'))$('f-docno').value=t.doc_no||'';
     if($('f-bank-acc'))$('f-bank-acc').value=t.bank_account||'';
+    if($('f-party-taxid'))$('f-party-taxid').value=t.vendor_tax_id||'';
+    if($('f-party-branch'))$('f-party-branch').value=t.vendor_branch||'00000';
   }
   renderCatChips('f-cats',CATS,S.selCat);setKind(S.eKind);setEntWHT(S.eWHT);setPayMethod(S.ePayMethod);updEntryCalc();
   closeOv('s-ext');openOv('s-entry');
@@ -1739,12 +1754,18 @@ function setKind(k){
     si('ent-ttl','บันทึกรายจ่าย');
     if($('f-party-lbl'))$('f-party-lbl').textContent='ผู้ขาย / ผู้รับเงิน';
     if($('f-wht-wrap'))$('f-wht-wrap').style.display='';
+    if($('f-party-tax-lbl'))$('f-party-tax-lbl').textContent='เลขประจำตัวผู้เสียภาษีของผู้ขาย';
+    if($('f-party-taxid'))$('f-party-taxid').placeholder='13 หลัก (สำหรับรายงานภาษีซื้อ)';
+    if($('f-tax-fields-wrap'))$('f-tax-fields-wrap').style.display='';
   }else{
     si2.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:var(--green);color:#fff;font-family:inherit;cursor:pointer';
     se.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:transparent;color:var(--i3);font-family:inherit;cursor:pointer';
     si('ent-ttl','บันทึกรายรับ');
     if($('f-party-lbl'))$('f-party-lbl').textContent='ลูกค้า / ผู้ชำระเงิน';
     if($('f-wht-wrap'))$('f-wht-wrap').style.display='none';
+    if($('f-party-tax-lbl'))$('f-party-tax-lbl').textContent='เลขประจำตัวผู้เสียภาษีของลูกค้า';
+    if($('f-party-taxid'))$('f-party-taxid').placeholder='13 หลัก (สำหรับรายงานภาษีขาย)';
+    if($('f-tax-fields-wrap'))$('f-tax-fields-wrap').style.display='';
   }
   updEntryCalc();
 }
@@ -1806,6 +1827,8 @@ async function saveEntry(){
     wht_rate:S.eWHT,wht_amount:whtAmt,
     pay_method:S.ePayMethod,bank_account:$('f-bank-acc')?.value||'',
     doc_no:$('f-docno')?.value||'',
+    vendor_tax_id:$('f-party-taxid')?.value||'',
+    vendor_branch:$('f-party-branch')?.value||'00000',
     date:$('f-dt').value||todayISO(),txn_date:$('f-dt').value||todayISO(),
     note:$('f-note')?.value||'',source:'manual'
   };
@@ -2959,8 +2982,114 @@ async function loadVatSummary(){
     });
   }
   const rowHtml=(t,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i>0?'border-top:1px solid var(--ln)':''}"><div style="font-size:12.5px">${t.title||t.vendor||'รายการ'}<br><span style="font-size:11px;color:var(--i3)">${t.date||''}</span></div><div style="font-weight:700;font-size:13px;text-align:right">${fmt(t.vat||0)}<br><span style="font-size:11px;color:var(--i3)">ยอด ${fmt(t.amount||0)}</span></div></div>`;
+  // Store for export
+  window._vatData={income,expense,mo};
   si('vat-output-list',income.length?income.map(rowHtml).join(''):`<div style="color:var(--i3);padding:12px;text-align:center">ไม่มีรายการ</div>`);
   si('vat-input-list',expense.length?expense.map(rowHtml).join(''):`<div style="color:var(--i3);padding:12px;text-align:center">ไม่มีรายการ</div>`);
+}
+
+// ── OFFICIAL VAT REPORT EXPORT (แบบ สรรพากร) ────────────────
+function exportVATReport(type){
+  const d=window._vatData||{};
+  const mo=d.mo||$('vat-month-sel')?.value||new Date().toISOString().slice(0,7);
+  const [y,m]=mo.split('-');const thY=parseInt(y)+543;
+  const mNames=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const moLabel=`${mNames[parseInt(m)-1]} ${thY}`;
+  const bizName=S.biz?.name||'';
+  const bizTaxId=S.biz?.tax_id||'';
+  const bizAddr=S.biz?.address||'';
+  const isInput=type==='input';
+  const title=isInput?'รายงานภาษีซื้อ':'รายงานภาษีขาย';
+  const txns=isInput?(d.expense||[]):(d.income||[]);
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Format tax ID as XX-X-XXXXX-XX-X (13 digits display)
+  const fmtTaxId=id=>{
+    const n=(id||'').replace(/\D/g,'');
+    if(n.length===13)return n.replace(/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/,'$1-$2-$3-$4-$5');
+    return id||'';
+  };
+
+  const rows=txns.map((t,i)=>{
+    const dt=t.date||t.txn_date||'';
+    const base=t.has_vat?Math.round((t.amount/1.07)*100)/100:(t.amount||0);
+    const vat=t.vat||0;
+    const partyTaxId=isInput?(t.vendor_tax_id||''):(t.vendor_tax_id||'');
+    const branch=isInput?(t.vendor_branch||'00000'):(t.vendor_branch||'00000');
+    const isHQ=!branch||branch==='00000';
+    return `<tr>
+      <td style="text-align:center">${i+1}</td>
+      <td style="text-align:center">${dt?new Date(dt).toLocaleDateString('th-TH'):''}</td>
+      <td>${t.doc_no||''}</td>
+      <td>${t.title||t.vendor||''}</td>
+      <td style="text-align:center">${fmtTaxId(partyTaxId)}</td>
+      <td style="text-align:center">${isHQ?'✓':''}</td>
+      <td style="text-align:center">${isHQ?'':branch}</td>
+      <td style="text-align:right">${fmt(base)}</td>
+      <td style="text-align:right">${fmt(vat)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalBase=txns.reduce((s,t)=>s+(t.has_vat?Math.round((t.amount/1.07)*100)/100:(t.amount||0)),0);
+  const totalVat=txns.reduce((s,t)=>s+(t.vat||0),0);
+
+  const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+  <title>${title} ${moLabel}</title>
+  <style>
+    @page{size:A4 landscape;margin:15mm 10mm}
+    body{font-family:'TH Sarabun New',Sarabun,sans-serif;font-size:14pt;color:#000}
+    h2{text-align:center;font-size:20pt;margin:0 0 8px}
+    .meta{font-size:13pt;margin-bottom:4px}
+    .taxid-box{display:inline-flex;gap:2px;margin-left:4px}
+    .taxid-box span{border:1px solid #000;width:20px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:14pt}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12pt}
+    th,td{border:1px solid #000;padding:3px 6px;vertical-align:middle}
+    th{background:#f0f0f0;text-align:center;font-size:11pt}
+    .total td{font-weight:bold;background:#f8f8f8}
+    tfoot td{font-weight:800;text-align:right}
+    @media print{button{display:none}}
+  </style></head><body>
+  <button onclick="window.print()" style="float:right;padding:8px 18px;font-size:13pt;cursor:pointer;font-family:inherit">🖨 พิมพ์ PDF</button>
+  <h2>${title}</h2>
+  <div class="meta">เดือนภาษี <strong>${moLabel}</strong></div>
+  <div class="meta">ชื่อผู้ประกอบการ <strong>${bizName}</strong>
+    &nbsp;&nbsp;&nbsp;เลขประจำผู้เสียภาษีอากร
+    <span class="taxid-box">${(bizTaxId.replace(/\D/g,'')||'             ').padEnd(13,' ').split('').map(c=>`<span>${c.trim()}</span>`).join('')}</span>
+  </div>
+  <div class="meta">ชื่อสถานประกอบการ <strong>${bizName}</strong>
+    &nbsp;
+    <label><input type="checkbox" checked readonly> สำนักงานใหญ่</label>
+    &nbsp;
+    <label>สาขาที่ <input type="text" value="" size="4" style="border:none;border-bottom:1px solid #000"></label>
+  </div>
+  <table>
+    <thead><tr>
+      <th rowspan="2" style="width:40px">ลำดับ<br>ที่</th>
+      <th colspan="2">ใบกำกับภาษี</th>
+      <th rowspan="2">${isInput?'ชื่อผู้ขายสินค้า/<br>ผู้ให้บริการ':'ชื่อผู้ซื้อสินค้า/<br>ผู้รับบริการ'}</th>
+      <th rowspan="2">เลขประจำตัวผู้เสียภาษีอากร<br>ของ${isInput?'ผู้ขาย':'ผู้ซื้อ'}</th>
+      <th colspan="2">สถานประกอบการ</th>
+      <th rowspan="2">มูลค่าสินค้า<br>หรือบริการ</th>
+      <th rowspan="2">จำนวนเงิน<br>ภาษีมูลค่าเพิ่ม</th>
+    </tr><tr>
+      <th>วัน เดือน ปี</th>
+      <th>เลขที่/<br>เล่มที่</th>
+      <th>สำนักงานใหญ่</th>
+      <th>สาขาที่</th>
+    </tr></thead>
+    <tbody>${rows||`<tr><td colspan="9" style="text-align:center;color:#888">ไม่มีรายการ</td></tr>`}</tbody>
+    <tfoot><tr class="total">
+      <td colspan="7" style="text-align:right;font-weight:800">รวม</td>
+      <td style="text-align:right">${fmt(totalBase)}</td>
+      <td style="text-align:right">${fmt(totalVat)}</td>
+    </tr></tfoot>
+  </table>
+  <p style="font-size:11pt;margin-top:8px;color:#555">* หมายเหตุ: ช่องสถานประกอบการ 00000 = สำนักงานใหญ่ / ตามแบบรายงานภาษีซื้อ-ขาย กรมสรรพากร มีผลบังคับใช้ 1 ม.ค. 2558</p>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=1000,height=750');
+  if(w){w.document.write(html);w.document.close();}
+  else{toast('กรุณาอนุญาต pop-up เพื่อพิมพ์รายงาน');}
 }
 
 // ── WHT REPORT ───────────────────────────────────────────────
