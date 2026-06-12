@@ -58,7 +58,9 @@ ALTER TABLE transactions
   ADD COLUMN IF NOT EXISTS pay_method     TEXT DEFAULT 'โอนเงิน',
   ADD COLUMN IF NOT EXISTS bank_account   TEXT,
   ADD COLUMN IF NOT EXISTS m40_type      TEXT,   -- ม.40 category for personal income tax
-  ADD COLUMN IF NOT EXISTS sso_amount    NUMERIC(8,2) DEFAULT 0;  -- ประกันสังคมที่ถูกหักต่อเดือน
+  ADD COLUMN IF NOT EXISTS sso_amount    NUMERIC(8,2) DEFAULT 0,  -- ประกันสังคมที่ถูกหักต่อเดือน
+  ADD COLUMN IF NOT EXISTS wht_inc_rate  NUMERIC(4,2) DEFAULT 0,  -- อัตรา WHT ที่ถูกหักจากรายรับ
+  ADD COLUMN IF NOT EXISTS wht_inc_amt   NUMERIC(12,2) DEFAULT 0; -- ยอด WHT ที่ถูกหักจากรายรับ
 
 -- Sync type ↔ kind for existing rows
 UPDATE transactions SET type = kind WHERE type IS NULL AND kind IS NOT NULL;

@@ -619,8 +619,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div style="flex:1"><div style="font-weight:700;font-size:14.5px">ภาษีมูลค่าเพิ่ม VAT 7%</div><div style="font-size:12.5px;color:var(--i3);margin-top:2px" id="vat-disp">ไม่รวม VAT</div></div>
       <button class="tgl t-off" id="vat-tgl" onclick="togVAT()"><div class="tgl-k"></div></button>
     </div>
+    <!-- WHT สำหรับรายจ่าย: เลือก % ที่คุณหัก -->
     <div class="card" style="margin-bottom:14px" id="f-wht-wrap">
-      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:8px">ภาษีหัก ณ ที่จ่าย (WHT)</div>
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:8px">ภาษีหัก ณ ที่จ่าย (WHT) — ที่คุณหักจากผู้รับ</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap" id="f-wht-chips">
         <button class="chip c-on" onclick="setEntWHT(0)">ไม่หัก</button>
         <button class="chip c-off" onclick="setEntWHT(1)">1%</button>
@@ -629,6 +630,28 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         <button class="chip c-off" onclick="setEntWHT(5)">5%</button>
         <button class="chip c-off" onclick="setEntWHT(10)">10%</button>
       </div>
+    </div>
+    <!-- WHT สำหรับรายรับ: กรอกยอดที่ถูกหักจากผู้จ่าย -->
+    <div class="card" style="margin-bottom:14px" id="f-wht-income-wrap" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:4px">ภาษีหัก ณ ที่จ่าย — ที่ถูกหักจากรายรับนี้</div>
+      <div style="font-size:12px;color:var(--i3);margin-bottom:10px">เช่น นายจ้าง / ลูกค้าหัก 3% ก่อนโอน → กรอกยอดที่ถูกหักจริง</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div>
+          <div style="font-size:11.5px;color:var(--i3);margin-bottom:4px">อัตราที่ถูกหัก (%)</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="f-wht-inc-chips">
+            <button class="chip c-on" onclick="setIncWHT(0)">ไม่มี</button>
+            <button class="chip c-off" onclick="setIncWHT(1)">1%</button>
+            <button class="chip c-off" onclick="setIncWHT(3)">3%</button>
+            <button class="chip c-off" onclick="setIncWHT(5)">5%</button>
+            <button class="chip c-off" onclick="setIncWHT(10)">10%</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11.5px;color:var(--i3);margin-bottom:4px">ยอดที่ถูกหัก (บาท)</div>
+          <input class="fl-in" type="number" inputmode="decimal" id="f-wht-inc-amt" placeholder="0" oninput="S.eWHTIncAmt=parseFloat(this.value)||0;updEntryCalc()" style="font-size:14px;padding:8px 10px"/>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:var(--i3)" id="f-wht-inc-hint">ยอดนี้จะสะสมเป็น WHT credit ในการคำนวณภาษีประจำปี</div>
     </div>
     <!-- Auto Journal Preview -->
     <div class="card" style="margin-bottom:14px;background:var(--ink);color:#fff" id="f-journal">
@@ -1935,7 +1958,7 @@ async function loadPITAllYear(){
   const thYear=parseInt(S.pitYear||'2567');
   const adYear=thYear-543;
   const{data}=await sb.from('transactions')
-    .select('amount,wht_amount,vat,kind,m40_type,sso_amount,txn_date')
+    .select('amount,wht_amount,wht_inc_amt,vat,kind,m40_type,sso_amount,txn_date')
     .eq('business_id',S.bizId)
     .eq('kind','income')
     .gte('txn_date',`${adYear}-01-01`)
@@ -1946,7 +1969,8 @@ async function loadPITAllYear(){
     const key=t.m40_type||'m40_8';
     if(!grouped[key])grouped[key]={type:key,amount:0,wht:0,count:0};
     grouped[key].amount+=parseFloat(t.amount)||0;
-    grouped[key].wht+=(parseFloat(t.wht_amount)||0);
+    // prefer wht_inc_amt (income WHT withheld by payer) over wht_amount (expense WHT)
+    grouped[key].wht+=(parseFloat(t.wht_inc_amt)||parseFloat(t.wht_amount)||0);
     grouped[key].count++;
     totalSSO+=parseFloat(t.sso_amount)||0;
   });
@@ -2122,7 +2146,7 @@ function openEntry(mode){
     const r=mode==='from-ocr'?S.ocrRes:null;
     $('f-amt').value=r?.total_amount||'';$('f-ttl').value=r?.vendor_name||'';$('f-dt').value=r?.doc_date||todayISO();
     S.eKind=(mode==='income')?'income':'expense';
-    S.hasVAT=r?(r.vat_amount||0)>0:false;S.eWHT=0;S.ePayMethod='โอนเงิน';
+    S.hasVAT=r?(r.vat_amount||0)>0:false;S.eWHT=0;S.eWHTIncRate=0;S.eWHTIncAmt=0;S.ePayMethod='โอนเงิน';
     S.selCat=mode==='from-ocr'?S.ocrCat:(S.eKind==='income'?'รายได้':'วัตถุดิบ');
     if($('f-note'))$('f-note').value='';
     if($('f-docno'))$('f-docno').value=genDocNo(S.eKind);
@@ -2132,6 +2156,8 @@ function openEntry(mode){
     if($('f-m40-type'))$('f-m40-type').value='';
     if($('f-sso'))$('f-sso').value='';
     if($('f-sso-wrap'))$('f-sso-wrap').style.display='none';
+    if($('f-wht-inc-amt'))$('f-wht-inc-amt').value='';
+    setIncWHT(0);
     S.eRecurring=false;
     if($('f-rec-tgl'))$('f-rec-tgl').className='tgl t-off';
   }else{
@@ -2140,6 +2166,8 @@ function openEntry(mode){
     $('f-amt').value=t.amount||'';$('f-ttl').value=t.title||'';$('f-dt').value=t.txn_date||todayISO();
     S.eKind=t.kind||'expense';S.hasVAT=t.has_vat||false;S.selCat=t.category||'วัตถุดิบ';
     S.eWHT=t.wht_rate||0;S.ePayMethod=t.pay_method||'โอนเงิน';
+    S.eWHTIncRate=t.wht_inc_rate||0;S.eWHTIncAmt=t.wht_inc_amt||0;
+    if($('f-wht-inc-amt'))$('f-wht-inc-amt').value=t.wht_inc_amt||'';
     if($('f-note'))$('f-note').value=t.note||'';
     if($('f-docno'))$('f-docno').value=t.doc_no||'';
     if($('f-bank-acc'))$('f-bank-acc').value=t.bank_account||'';
@@ -2162,6 +2190,7 @@ function setKind(k){
     si('ent-ttl','บันทึกรายจ่าย');
     if($('f-party-lbl'))$('f-party-lbl').textContent='ผู้ขาย / ผู้รับเงิน';
     if($('f-wht-wrap'))$('f-wht-wrap').style.display='';
+    if($('f-wht-income-wrap'))$('f-wht-income-wrap').style.display='none';
     if($('f-party-tax-lbl'))$('f-party-tax-lbl').textContent='เลขประจำตัวผู้เสียภาษีของผู้ขาย';
     if($('f-party-taxid'))$('f-party-taxid').placeholder='13 หลัก (สำหรับรายงานภาษีซื้อ)';
     if($('f-tax-fields-wrap'))$('f-tax-fields-wrap').style.display='';
@@ -2173,6 +2202,7 @@ function setKind(k){
     si('ent-ttl','บันทึกรายรับ');
     if($('f-party-lbl'))$('f-party-lbl').textContent='ลูกค้า / ผู้ชำระเงิน';
     if($('f-wht-wrap'))$('f-wht-wrap').style.display='none';
+    if($('f-wht-income-wrap'))$('f-wht-income-wrap').style.display='';
     if($('f-party-tax-lbl'))$('f-party-tax-lbl').textContent='เลขประจำตัวผู้เสียภาษีของลูกค้า';
     if($('f-party-taxid'))$('f-party-taxid').placeholder='13 หลัก (สำหรับรายงานภาษีขาย)';
     if($('f-tax-fields-wrap'))$('f-tax-fields-wrap').style.display='';
@@ -2243,10 +2273,12 @@ async function saveEntry(){
     vendor_branch:$('f-party-branch')?.value||'00000',
     m40_type:$('f-m40-type')?.value||null,
     sso_amount:parseFloat($('f-sso')?.value)||0,
+    wht_inc_rate:S.eWHTIncRate||0,
+    wht_inc_amt:S.eWHTIncAmt||0,
     date:$('f-dt').value||todayISO(),txn_date:$('f-dt').value||todayISO(),
     note:$('f-note')?.value||'',source:'manual'
   };
-  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account','m40_type','sso_amount'];
+  const BETA_COLS=['type','date','vendor','doc_no','vendor_tax_id','vendor_branch','wht_rate','wht_amount','pay_method','bank_account','m40_type','sso_amount','wht_inc_rate','wht_inc_amt'];
   let err;
   if(S.eTxnId){({error:err}=await sb.from('transactions').update(row).eq('id',S.eTxnId));}
   else{({error:err}=await sb.from('transactions').insert(row));}
@@ -2272,6 +2304,23 @@ async function saveEntry(){
     }else{toast('บันทึกรายการแล้ว');}
   }else{toast(S.eTxnId?'แก้ไขรายการแล้ว':'บันทึกรายการแล้ว');}
   closeOv('s-entry');await loadTxns();
+}
+function setIncWHT(r){
+  S.eWHTIncRate=r;
+  $('f-wht-inc-chips')?.querySelectorAll('.chip').forEach(b=>{
+    const v=parseFloat(b.textContent)||0;b.className='chip '+(v===r?'c-on':'c-off');
+  });
+  // auto-calc amount from current income amount
+  const amt=parseFloat($('f-amt')?.value)||0;
+  if(r>0&&amt>0){
+    const auto=Math.round(amt*(r/100)*100)/100;
+    if($('f-wht-inc-amt'))$('f-wht-inc-amt').value=auto;
+    S.eWHTIncAmt=auto;
+  }else if(r===0){
+    if($('f-wht-inc-amt'))$('f-wht-inc-amt').value='';
+    S.eWHTIncAmt=0;
+  }
+  updEntryCalc();
 }
 function onM40Change(val){
   // Show SSO field only for ม.40(1) เงินเดือน and ม.40(2) นายหน้า (eligible for SSF)
