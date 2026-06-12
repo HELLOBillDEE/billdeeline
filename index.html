@@ -456,31 +456,56 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 <div class="bd-ov" id="s-cap" style="background:#0c1416;z-index:60">
   <div class="s-topbar">
     <button class="s-btn" onclick="closeOv('s-cap')" id="cap-x"></button>
-    <span style="color:#fff;font-size:15px;font-weight:700">สแกนใบเสร็จ</span>
+    <span style="color:#fff;font-size:15px;font-weight:700">สแกนใบเสร็จ / นำเข้าไฟล์</span>
     <button class="s-btn" id="cap-fl"></button>
   </div>
-  <div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px">
+  <!-- File drop zone + visual -->
+  <div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px"
+       id="cap-drop-zone"
+       ondragover="event.preventDefault();this.style.background='rgba(57,194,207,.15)'"
+       ondragleave="this.style.background=''"
+       ondrop="event.preventDefault();this.style.background='';handleDropFiles(event.dataTransfer.files)">
+    <!-- corner guides -->
     <div style="position:absolute;top:58px;left:36px;width:34px;height:34px;border-top:3px solid #39c2cf;border-left:3px solid #39c2cf;border-top-left-radius:10px"></div>
     <div style="position:absolute;top:58px;right:36px;width:34px;height:34px;border-top:3px solid #39c2cf;border-right:3px solid #39c2cf;border-top-right-radius:10px"></div>
-    <div style="position:absolute;bottom:58px;left:36px;width:34px;height:34px;border-bottom:3px solid #39c2cf;border-left:3px solid #39c2cf;border-bottom-left-radius:10px"></div>
-    <div style="position:absolute;bottom:58px;right:36px;width:34px;height:34px;border-bottom:3px solid #39c2cf;border-right:3px solid #39c2cf;border-bottom-right-radius:10px"></div>
-    <div style="width:210px;background:#fbf7ef;border-radius:5px;padding:14px;transform:rotate(-1.5deg);box-shadow:0 28px 56px -18px rgba(0,0,0,.75);font-size:9px;color:#333;line-height:1.8">
+    <div style="position:absolute;bottom:140px;left:36px;width:34px;height:34px;border-bottom:3px solid #39c2cf;border-left:3px solid #39c2cf;border-bottom-left-radius:10px"></div>
+    <div style="position:absolute;bottom:140px;right:36px;width:34px;height:34px;border-bottom:3px solid #39c2cf;border-right:3px solid #39c2cf;border-bottom-right-radius:10px"></div>
+    <!-- mock receipt -->
+    <div style="width:200px;background:#fbf7ef;border-radius:5px;padding:14px;transform:rotate(-1.5deg);box-shadow:0 28px 56px -18px rgba(0,0,0,.75);font-size:9px;color:#333;line-height:1.8">
       <div style="text-align:center;font-weight:700;font-size:11px">BIG C SUPERCENTER</div>
       <div style="text-align:center;color:#888;font-size:8px">สาขาเชียงใหม่</div>
       <hr style="border:none;border-top:1px dashed #bbb;margin:6px 0"/>
       <div style="display:flex;justify-content:space-between"><span>Milk 2L x6</span><span>318.00</span></div>
-      <div style="display:flex;justify-content:space-between"><span>Sugar 1kg x10</span><span>245.00</span></div>
-      <div style="display:flex;justify-content:space-between"><span>Cup 16oz x500</span><span>890.00</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Sugar 1kg</span><span>245.00</span></div>
       <hr style="border:none;border-top:1px dashed #bbb;margin:6px 0"/>
       <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px"><span>TOTAL</span><span>2,380.00</span></div>
     </div>
-    <div style="color:rgba(255,255,255,.6);font-size:13px;position:absolute;bottom:28px">วางใบเสร็จให้อยู่ในกรอบ</div>
+    <!-- file type badges -->
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <span style="background:rgba(255,255,255,.12);color:#7fdce4;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px">📷 ถ่ายรูป</span>
+      <span style="background:rgba(255,255,255,.12);color:#7fdce4;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px">🖼 PNG / JPG</span>
+      <span style="background:rgba(255,255,255,.12);color:#e57c5b;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px">📄 PDF</span>
+    </div>
+    <div style="color:rgba(255,255,255,.45);font-size:12px">ถ่าย · เลือกจากคลัง · PDF จาก Files / เมล</div>
   </div>
-  <input type="file" id="file-in" accept="image/*,.pdf" style="display:none" onchange="handleFile(this)"/>
-  <div style="display:flex;align-items:center;justify-content:space-around;padding:0 28px 44px">
-    <button class="s-btn" style="width:52px;height:52px;border-radius:16px" onclick="document.getElementById('file-in').click()" id="cap-gal"></button>
+  <!-- hidden inputs -->
+  <input type="file" id="file-in"     accept="image/*,.pdf,application/pdf" style="display:none" onchange="handleFile(this)"/>
+  <input type="file" id="file-in-pdf" accept=".pdf,application/pdf"         style="display:none" onchange="handleFile(this)"/>
+  <input type="file" id="file-in-img" accept="image/*"                      style="display:none" onchange="handleFile(this)" capture="environment"/>
+  <!-- bottom bar -->
+  <div style="display:flex;align-items:center;justify-content:space-around;padding:0 18px 44px;gap:10px">
+    <!-- แกลเลอรี / ไฟล์รูป -->
+    <button onclick="document.getElementById('file-in-img').click()"
+      style="flex:1;height:54px;border-radius:16px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px" id="cap-gal">
+      <span id="cap-gal-ic"></span>รูปภาพ
+    </button>
+    <!-- ปุ่มหลัก: ถ่าย (ส่ง file ทุกประเภท) -->
     <button class="shutter" onclick="document.getElementById('file-in').click()"><div class="shutter-in"></div></button>
-    <button class="s-btn" style="width:52px;height:52px;border-radius:16px" onclick="document.getElementById('file-in').click()" id="cap-ln"></button>
+    <!-- PDF -->
+    <button onclick="document.getElementById('file-in-pdf').click()"
+      style="flex:1;height:54px;border-radius:16px;border:none;background:rgba(229,124,91,.18);color:#e57c5b;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px" id="cap-pdf">
+      <span style="font-size:22px">📄</span>PDF / ไฟล์
+    </button>
   </div>
 </div>
 
@@ -1330,7 +1355,7 @@ function paintIcons(){
   si('ai-ic',ic('sparkle',24,'#7fdce4'));si('ai-chev',ic('chevR',20,'rgba(255,255,255,.5)'));
   si('q1',ic('camera',22,'#0e9aa7'));si('q2',ic('arrowUp',22,'var(--green)'));si('q3',ic('arrowDown',22,'#e25563'));si('q4',ic('doc',22,'#0e9aa7'));
   // scan
-  si('cap-x',ic('x',22,'#fff'));si('cap-fl',ic('flash',20,'#fff'));si('cap-gal',ic('gallery',22,'#fff'));si('cap-ln',ic('line',22,'#06C755'));
+  si('cap-x',ic('x',22,'#fff'));si('cap-fl',ic('flash',20,'#fff'));si('cap-gal-ic',ic('gallery',22,'#fff'));si('cap-ln',ic('line',22,'#06C755'));
   si('ana-ic',ic('sparkle',46,'#39c2cf'));
   // extracted
   si('ext-bk',ic('chevL',22,'#0f2a30'));si('ext-conf-ic',ic('sparkle',18,'#fff'));
@@ -1593,9 +1618,13 @@ function renderMore(){
 
 // ── SCAN FLOW ─────────────────────────────────────────────────
 function openScan(){openOv('s-cap')}
+function handleDropFiles(files){if(files?.length)handleFileObj(files[0]);}
 async function handleFile(input){
   if(!input.files?.length)return;
   const file=input.files[0];input.value='';
+  handleFileObj(file);
+}
+async function handleFileObj(file){
   closeOv('s-cap');openOv('s-ana');
   const STEPS=['กำลังอ่านข้อความจากเอกสาร','ตรวจหาเลขภาษี VAT และยอดเงิน','วิเคราะห์ประเภทค่าใช้จ่าย','สร้างรายการบัญชี'];
   let cur=-1;
@@ -1606,13 +1635,23 @@ async function handleFile(input){
     if(cur>0){const pr=$('sp'+(cur-1));if(pr){pr.children[0].innerHTML=`<div style="width:13px;height:13px;border-radius:50%;background:#39c2cf;display:flex;align-items:center;justify-content:center">${ic('check',9,'#0c1416')}</div>`;pr.style.fontWeight='500';}}
   };
   tick();const iv=setInterval(tick,700);
+  const isPdf=file.type==='application/pdf'||file.name?.toLowerCase().endsWith('.pdf');
   try{
-    const compressed=await compressImage(file);
-    const b64=await toBase64(compressed);
-    const imgB64=b64.split(',')[1];
-    S.ocrImage=imgB64; S.ocrImageType='image/jpeg'; // เก็บไว้ส่ง Drive ภายหลัง
+    let imgB64,mediaType;
+    if(isPdf){
+      // PDF — send raw base64 directly; Gemini Vision accepts application/pdf natively
+      const buf=await file.arrayBuffer();
+      const bytes=new Uint8Array(buf);
+      let bin='';for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+      imgB64=btoa(bin);mediaType='application/pdf';
+    }else{
+      const compressed=await compressImage(file);
+      const b64=await toBase64(compressed);
+      imgB64=b64.split(',')[1];mediaType='image/jpeg';
+    }
+    S.ocrImage=imgB64;S.ocrImageType=mediaType;
     const res=await fetch(CFG.OCR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      imageBase64:imgB64,mediaType:file.type,
+      imageBase64:imgB64,mediaType,
       businessName:S.biz?.name||'',ownerName:S.biz?.owner||'',taxId:S.biz?.tax_id||''
     })});
     const json=await res.json();
