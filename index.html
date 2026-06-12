@@ -371,8 +371,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       </div>
       <div class="qg">
         <button class="qb" onclick="openScan()"><div class="qb-ic" id="q1"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">สแกนบิล</span></button>
-        <button class="qb" onclick="openEntry('new')"><div class="qb-ic" id="q2"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">บันทึกเอง</span></button>
-        <button class="qb" onclick="switchTab('report')"><div class="qb-ic" id="q3"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">รายงาน</span></button>
+        <button class="qb" onclick="openEntry('income')"><div class="qb-ic" id="q2"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">รายรับ</span></button>
+        <button class="qb" onclick="openEntry('expense')"><div class="qb-ic" id="q3"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">รายจ่าย</span></button>
         <button class="qb" onclick="openDocGen()"><div class="qb-ic" id="q4"></div><span style="font-size:11.5px;font-weight:600;color:var(--i2)">ออกบิล</span></button>
       </div>
       <div class="ai-bar" onclick="openSubscribe()">
@@ -519,32 +519,61 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 <div class="bd-ov" id="s-entry">
   <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
     <button class="btn-back" onclick="closeOv('s-entry')" id="ent-bk"></button>
-    <div style="flex:1"><div style="font-size:17.5px;font-weight:800" id="ent-ttl">บันทึกรายการใหม่</div></div>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800" id="ent-ttl">บันทึกรายการใหม่</div><div style="font-size:12px;color:var(--i3)" id="ent-docno"></div></div>
     <button class="ic-btn" id="ent-del" style="display:none" onclick="delEntry()"></button>
   </div>
   <div class="scroll" style="flex:1;padding:0 18px">
-    <div style="display:flex;background:#fff;border-radius:15px;padding:4px;box-shadow:inset 0 0 0 1.5px var(--ln);margin-bottom:16px">
-      <button id="seg-exp" onclick="setKind('expense')" style="flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:var(--t600);color:#fff;font-family:inherit;transition:all .15s;cursor:pointer">รายจ่าย</button>
-      <button id="seg-inc" onclick="setKind('income')" style="flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:transparent;color:var(--i3);font-family:inherit;transition:all .15s;cursor:pointer">รายรับ</button>
+    <!-- Type toggle -->
+    <div style="display:flex;background:#fff;border-radius:15px;padding:4px;box-shadow:inset 0 0 0 1.5px var(--ln);margin-bottom:14px">
+      <button id="seg-inc" onclick="setKind('income')" style="flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:var(--t600);color:#fff;font-family:inherit;transition:all .15s;cursor:pointer">รายรับ</button>
+      <button id="seg-exp" onclick="setKind('expense')" style="flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:transparent;color:var(--i3);font-family:inherit;transition:all .15s;cursor:pointer">รายจ่าย</button>
     </div>
-    <div style="text-align:center;padding:6px 0 18px">
-      <div style="font-size:13px;color:var(--i3);margin-bottom:4px">จำนวนเงิน</div>
+    <!-- Amount -->
+    <div style="text-align:center;padding:4px 0 14px">
+      <div style="font-size:13px;color:var(--i3);margin-bottom:4px">มูลค่าสินค้า / บริการ</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:4px">
         <span style="font-size:26px;font-weight:700;color:var(--i3)">฿</span>
-        <input id="f-amt" type="number" inputmode="decimal" placeholder="0" oninput="updVAT()" style="border:none;outline:none;background:transparent;font-family:inherit;font-weight:800;font-size:40px;color:var(--ink);width:200px;text-align:center;letter-spacing:-1px"/>
+        <input id="f-amt" type="number" inputmode="decimal" placeholder="0" oninput="updEntryCalc()" style="border:none;outline:none;background:transparent;font-family:inherit;font-weight:800;font-size:40px;color:var(--ink);width:200px;text-align:center;letter-spacing:-1px"/>
       </div>
     </div>
-    <div class="card" style="display:flex;flex-direction:column;gap:14px">
-      <div><div class="fl-lbl">ร้านค้า / รายละเอียด</div><div class="fl-w"><span id="f-ttl-ic"></span><input class="fl-in" id="f-ttl" placeholder="เช่น ร้านกาแฟ, Shopee…"/></div></div>
+    <!-- Fields -->
+    <div class="card" style="display:flex;flex-direction:column;gap:14px;margin-bottom:14px">
+      <div><div class="fl-lbl" id="f-party-lbl">ลูกค้า / ผู้ชำระเงิน</div><div class="fl-w"><span id="f-ttl-ic"></span><input class="fl-in" id="f-ttl" placeholder="ชื่อลูกค้า หรือ บริษัท"/></div></div>
+      <div><div class="fl-lbl">เลขที่เอกสาร</div><div class="fl-w"><input class="fl-in" id="f-docno" placeholder="เช่น IV67050001 (ระบบสร้างให้อัตโนมัติ)"/></div></div>
       <div><div class="fl-lbl">หมวดหมู่</div><div style="display:flex;gap:7px;flex-wrap:wrap" id="f-cats"></div></div>
       <div><div class="fl-lbl">วันที่</div><div class="fl-w"><span id="f-dt-ic"></span><input class="fl-in" id="f-dt" type="date"/></div></div>
+      <div><div class="fl-lbl">ช่องทางชำระเงิน</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap" id="f-pay-method">
+          <button class="chip c-on" onclick="setPayMethod('โอนเงิน')">โอนเงิน</button>
+          <button class="chip c-off" onclick="setPayMethod('เงินสด')">เงินสด</button>
+          <button class="chip c-off" onclick="setPayMethod('เช็ค')">เช็ค</button>
+          <button class="chip c-off" onclick="setPayMethod('บัตรเครดิต')">บัตรเครดิต</button>
+        </div>
+      </div>
+      <div><div class="fl-lbl">เลขที่บัญชีธนาคาร (ถ้ามี)</div><div class="fl-w"><input class="fl-in" id="f-bank-acc" placeholder="เช่น 123-4-56789-0"/></div></div>
     </div>
-    <div class="card" style="margin-top:14px;display:flex;align-items:center;gap:12px">
-      <div style="flex:1"><div style="font-weight:700;font-size:14.5px">รวม VAT 7%</div><div style="font-size:12.5px;color:var(--i3);margin-top:2px" id="vat-disp">ไม่รวม VAT</div></div>
+    <!-- VAT + WHT -->
+    <div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><div style="font-weight:700;font-size:14.5px">ภาษีมูลค่าเพิ่ม VAT 7%</div><div style="font-size:12.5px;color:var(--i3);margin-top:2px" id="vat-disp">ไม่รวม VAT</div></div>
       <button class="tgl t-off" id="vat-tgl" onclick="togVAT()"><div class="tgl-k"></div></button>
     </div>
-    <div style="margin-top:14px"><div class="fl-lbl">บันทึกเพิ่มเติม</div><div class="fl-w"><textarea class="fl-in fl-ta" id="f-note" placeholder="หมายเหตุ (ถ้ามี)"></textarea></div></div>
-    <div style="height:16px"></div>
+    <div class="card" style="margin-bottom:14px" id="f-wht-wrap">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:8px">ภาษีหัก ณ ที่จ่าย (WHT)</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap" id="f-wht-chips">
+        <button class="chip c-on" onclick="setEntWHT(0)">ไม่หัก</button>
+        <button class="chip c-off" onclick="setEntWHT(1)">1%</button>
+        <button class="chip c-off" onclick="setEntWHT(1.5)">1.5%</button>
+        <button class="chip c-off" onclick="setEntWHT(3)">3%</button>
+        <button class="chip c-off" onclick="setEntWHT(5)">5%</button>
+        <button class="chip c-off" onclick="setEntWHT(10)">10%</button>
+      </div>
+    </div>
+    <!-- Auto Journal Preview -->
+    <div class="card" style="margin-bottom:14px;background:var(--ink);color:#fff" id="f-journal">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:10px">ระบบสร้างบัญชีให้อัตโนมัติ</div>
+      <div id="f-journal-rows"></div>
+    </div>
+    <div style="margin-bottom:14px"><div class="fl-lbl">บันทึกเพิ่มเติม</div><div class="fl-w"><textarea class="fl-in fl-ta" id="f-note" placeholder="หมายเหตุ (ถ้ามี)"></textarea></div></div>
     <button class="btn btn-p" onclick="saveEntry()" id="save-ent-btn"></button>
     <div style="height:30px"></div>
   </div>
@@ -971,6 +1000,51 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- ══ BANK RECONCILIATION (กระทบยอดธนาคาร) ══════════════════ -->
+<div class="bd-ov" id="s-bank">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-bank')" id="bank-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">กระทบยอดธนาคาร</div><div style="font-size:12px;color:var(--i3)" id="bank-sub">Bank Reconciliation</div></div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <!-- Account & Date -->
+    <div class="card" style="margin:8px 0 14px;display:flex;flex-direction:column;gap:10px">
+      <div class="fl-w"><input class="fl-in" id="bank-acno" placeholder="เลขที่บัญชี เช่น 123-4-56789-0" oninput="bankReconCalc()"/></div>
+      <div style="display:flex;gap:8px">
+        <div class="fl-w" style="flex:1"><input class="fl-in" id="bank-date-from" type="date" onchange="bankReconCalc()"/></div>
+        <div class="fl-w" style="flex:1"><input class="fl-in" id="bank-date-to" type="date" onchange="bankReconCalc()"/></div>
+      </div>
+    </div>
+    <!-- Result badges -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px" id="bank-result"></div>
+    <!-- Two-column comparison -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="card" style="padding:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--t700);margin-bottom:8px">รายการในระบบ</div>
+        <div id="bank-sys-list"></div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1.5px solid var(--ln);font-weight:800;font-size:12px" id="bank-sys-total"></div>
+      </div>
+      <div class="card" style="padding:10px">
+        <div style="font-size:12px;font-weight:800;color:#0b7c87;margin-bottom:8px">Statement ธนาคาร</div>
+        <div id="bank-stmt-list"></div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1.5px solid var(--ln);font-weight:800;font-size:12px" id="bank-stmt-total"></div>
+      </div>
+    </div>
+    <!-- Paste bank statement -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--i2);margin-bottom:8px">วาง Statement ธนาคาร (CSV / ข้อความ)</div>
+      <textarea class="fl-in fl-ta" id="bank-stmt-input" rows="5" placeholder="วาง CSV หรือข้อความจาก Statement ธนาคาร&#10;รูปแบบ: วันที่, รายการ, จำนวนเงิน&#10;เช่น: 02/05/2567, รับชำระจากลูกค้า, 10700" oninput="parseStmtInput()"></textarea>
+      <button class="btn btn-g btn-sm" style="margin-top:8px" onclick="parseStmtInput()">วิเคราะห์ Statement</button>
+    </div>
+    <!-- Unmatched items -->
+    <div class="card" style="margin-bottom:20px" id="bank-unmatched-wrap" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:#e25563;margin-bottom:8px">รายการที่ยังไม่ตรง</div>
+      <div id="bank-unmatched-list"></div>
+    </div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
 <!-- ══ VAT SUMMARY (สรุปภาษีซื้อ-ภาษีขาย) ══════════════════════ -->
 <div class="bd-ov" id="s-vat">
   <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
@@ -1241,7 +1315,7 @@ function paintIcons(){
   // home
   si('notif-ic',ic('bell',21,'#0f2a30'));si('ic-arr-dn',ic('arrowDown',13,'#fff'));si('ic-arr-up',ic('arrowUp',13,'#fff'));
   si('ai-ic',ic('sparkle',24,'#7fdce4'));si('ai-chev',ic('chevR',20,'rgba(255,255,255,.5)'));
-  si('q1',ic('camera',22,'#0e9aa7'));si('q2',ic('edit',22,'#0e9aa7'));si('q3',ic('chart',22,'#0e9aa7'));si('q4',ic('doc',22,'#0e9aa7'));
+  si('q1',ic('camera',22,'#0e9aa7'));si('q2',ic('arrowUp',22,'var(--green)'));si('q3',ic('arrowDown',22,'#e25563'));si('q4',ic('doc',22,'#0e9aa7'));
   // scan
   si('cap-x',ic('x',22,'#fff'));si('cap-fl',ic('flash',20,'#fff'));si('cap-gal',ic('gallery',22,'#fff'));si('cap-ln',ic('line',22,'#06C755'));
   si('ana-ic',ic('sparkle',46,'#39c2cf'));
@@ -1280,6 +1354,7 @@ function paintIcons(){
   if($('recv-bk'))si('recv-bk',ic('chevL',22,'#0f2a30'));
   if($('cust-pick-bk'))si('cust-pick-bk',ic('chevL',22,'#0f2a30'));
   if($('prod-pick-bk'))si('prod-pick-bk',ic('chevL',22,'#0f2a30'));
+  if($('bank-bk'))si('bank-bk',ic('chevL',22,'#0f2a30'));
   if($('vat-bk'))si('vat-bk',ic('chevL',22,'#0f2a30'));
   if($('wht-bk'))si('wht-bk',ic('chevL',22,'#0f2a30'));
   if($('wht-btn3'))$('wht-btn3').innerHTML=ic('doc',18,'#fff')+' ภ.ง.ด.3';
@@ -1491,6 +1566,7 @@ function renderMore(){
     {i:'receipt',l:'ภาษีซื้อ – ภาษีขาย',s:'สรุป VAT รายเดือน · ภ.พ.30',fn:'openVatSummary()'},
     {i:'chart',l:'ภาษีหัก ณ ที่จ่าย',s:'ภ.ง.ด.3 · ภ.ง.ด.53 · รายเดือน',fn:'openWHTReport()'},
     {i:'chart',l:'กำไร & ขาดทุน (P&L)',s:'สรุปรายได้ ค่าใช้จ่าย กำไรสุทธิ',fn:'openPNL()'},
+    {i:'wallet',l:'กระทบยอดธนาคาร',s:'Bank Reconciliation · ตรวจ Statement',fn:'openBankRecon()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
@@ -1618,41 +1694,121 @@ function renderCatChips(cid,cats,sel){
 }
 function selCat(c){S.selCat=c;renderCatChips('f-cats',CATS,c)}
 
+// Auto doc number generator: IV67050001 (income), AP67050001 (expense)
+function genDocNo(kind){
+  const d=new Date();const y=(d.getFullYear()+543).toString().slice(-2);
+  const m=(d.getMonth()+1).toString().padStart(2,'0');
+  const seq=String(Math.floor(Math.random()*9000)+1000);
+  return(kind==='income'?'IV':'AP')+y+m+seq;
+}
+
+S.eWHT=0;S.ePayMethod='โอนเงิน';
+
 function openEntry(mode){
   S.eMode=mode;
-  if(mode==='new'||mode==='from-ocr'){
-    S.eTxnId=null;si('ent-ttl','บันทึกรายการใหม่');$('ent-del').style.display='none';
+  const isNew=mode==='new'||mode==='income'||mode==='expense'||mode==='from-ocr';
+  if(isNew){
+    S.eTxnId=null;$('ent-del').style.display='none';
     const r=mode==='from-ocr'?S.ocrRes:null;
     $('f-amt').value=r?.total_amount||'';$('f-ttl').value=r?.vendor_name||'';$('f-dt').value=r?.doc_date||todayISO();
-    S.eKind='expense';S.hasVAT=r?(r.vat_amount||0)>0:false;
-    S.selCat=mode==='from-ocr'?S.ocrCat:'วัตถุดิบ';
+    S.eKind=(mode==='income')?'income':'expense';
+    S.hasVAT=r?(r.vat_amount||0)>0:false;S.eWHT=0;S.ePayMethod='โอนเงิน';
+    S.selCat=mode==='from-ocr'?S.ocrCat:(S.eKind==='income'?'รายได้':'วัตถุดิบ');
     if($('f-note'))$('f-note').value='';
+    if($('f-docno'))$('f-docno').value=genDocNo(S.eKind);
+    if($('f-bank-acc'))$('f-bank-acc').value=S.biz?.bank_account||'';
   }else{
     const t=S.txns.find(x=>x.id===mode);if(!t)return;
     S.eTxnId=t.id;si('ent-ttl','แก้ไขรายการ');$('ent-del').style.display='flex';si('ent-del',ic('trash',20,'var(--red)'));
     $('f-amt').value=t.amount||'';$('f-ttl').value=t.title||'';$('f-dt').value=t.txn_date||todayISO();
     S.eKind=t.kind||'expense';S.hasVAT=t.has_vat||false;S.selCat=t.category||'วัตถุดิบ';
+    S.eWHT=t.wht_rate||0;S.ePayMethod=t.pay_method||'โอนเงิน';
     if($('f-note'))$('f-note').value=t.note||'';
+    if($('f-docno'))$('f-docno').value=t.doc_no||'';
+    if($('f-bank-acc'))$('f-bank-acc').value=t.bank_account||'';
   }
-  renderCatChips('f-cats',CATS,S.selCat);setKind(S.eKind);updVAT();
+  renderCatChips('f-cats',CATS,S.selCat);setKind(S.eKind);setEntWHT(S.eWHT);setPayMethod(S.ePayMethod);updEntryCalc();
   closeOv('s-ext');openOv('s-entry');
 }
 function setKind(k){
-  S.eKind=k;const se=$('seg-exp'),si2=$('seg-inc');
-  if(k==='expense'){se.style.background='var(--t600)';se.style.color='#fff';si2.style.background='transparent';si2.style.color='var(--i3)';}
-  else{si2.style.background='var(--green)';si2.style.color='#fff';se.style.background='transparent';se.style.color='var(--i3)';}
+  S.eKind=k;
+  const se=$('seg-exp'),si2=$('seg-inc');
+  if(k==='expense'){
+    se.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:var(--t600);color:#fff;font-family:inherit;cursor:pointer';
+    si2.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:transparent;color:var(--i3);font-family:inherit;cursor:pointer';
+    si('ent-ttl','บันทึกรายจ่าย');
+    if($('f-party-lbl'))$('f-party-lbl').textContent='ผู้ขาย / ผู้รับเงิน';
+    if($('f-wht-wrap'))$('f-wht-wrap').style.display='';
+  }else{
+    si2.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:var(--green);color:#fff;font-family:inherit;cursor:pointer';
+    se.style.cssText='flex:1;height:42px;border-radius:11px;border:none;font-weight:700;font-size:15px;background:transparent;color:var(--i3);font-family:inherit;cursor:pointer';
+    si('ent-ttl','บันทึกรายรับ');
+    if($('f-party-lbl'))$('f-party-lbl').textContent='ลูกค้า / ผู้ชำระเงิน';
+    if($('f-wht-wrap'))$('f-wht-wrap').style.display='none';
+  }
+  updEntryCalc();
 }
-function togVAT(){S.hasVAT=!S.hasVAT;updVAT()}
-function updVAT(){
+function setPayMethod(m){
+  S.ePayMethod=m;
+  $('f-pay-method')?.querySelectorAll('.chip').forEach(b=>{
+    b.className='chip '+(b.textContent===m?'c-on':'c-off');
+  });
+}
+function setEntWHT(r){
+  S.eWHT=r;
+  $('f-wht-chips')?.querySelectorAll('.chip').forEach(b=>{
+    const br=parseFloat(b.textContent)||0;
+    b.className='chip '+((r===0&&b.textContent==='ไม่หัก')||(br===r&&r>0)?'c-on':'c-off');
+  });
+  updEntryCalc();
+}
+function togVAT(){S.hasVAT=!S.hasVAT;updEntryCalc()}
+function updVAT(){updEntryCalc()}
+function updEntryCalc(){
   const tgl=$('vat-tgl');if(tgl)tgl.className=`tgl ${S.hasVAT?'t-on':'t-off'}`;
-  const amt=parseFloat($('f-amt')?.value)||0;const v=S.hasVAT?amt-amt/1.07:0;
-  si('vat-disp',S.hasVAT?`VAT ฿${fmt2(v)} จากยอดรวม`:'ไม่รวม VAT');
+  const amt=parseFloat($('f-amt')?.value)||0;
+  const vatAmt=S.hasVAT?Math.round((amt-amt/1.07)*100)/100:0;
+  const base=S.hasVAT?Math.round((amt/1.07)*100)/100:amt;
+  const whtAmt=S.eWHT?Math.round(base*(S.eWHT/100)*100)/100:0;
+  const net=amt-whtAmt;
+  si('vat-disp',S.hasVAT?`VAT ฿${fmt2(vatAmt)} (ฐาน ${fmt2(base)})`:'ไม่รวม VAT');
+  // Auto-journal
+  const jr=$('f-journal-rows');if(!jr||!amt)return;
+  const isInc=S.eKind==='income';
+  const entries=isInc?[
+    {side:'เดบิต',acc:'เงินสด/ธนาคาร',amt:net,color:'#7fdce4'},
+    whtAmt?{side:'เดบิต',acc:`ภาษีหัก ณ ที่จ่าย ${S.eWHT}%`,amt:whtAmt,color:'#7fdce4'}:null,
+    {side:'เครดิต',acc:'รายได้จากการขาย',amt:base,color:'rgba(255,255,255,.6)'},
+    vatAmt?{side:'เครดิต',acc:'ภาษีขาย',amt:vatAmt,color:'rgba(255,255,255,.6)'}:null,
+  ].filter(Boolean):[
+    {side:'เดบิต',acc:'ค่าใช้จ่าย',amt:base,color:'#7fdce4'},
+    vatAmt?{side:'เดบิต',acc:'ภาษีซื้อ',amt:vatAmt,color:'#7fdce4'}:null,
+    whtAmt?{side:'เครดิต',acc:`ภาษีหัก ณ ที่จ่าย ${S.eWHT}%`,amt:whtAmt,color:'rgba(255,255,255,.6)'}:null,
+    {side:'เครดิต',acc:'เจ้าหนี้การค้า',amt:amt-whtAmt,color:'rgba(255,255,255,.6)'},
+  ].filter(Boolean);
+  jr.innerHTML=entries.map((e,i)=>`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid rgba(255,255,255,.1)':''}">
+      <div><span style="font-size:11px;font-weight:700;color:${e.color};opacity:.8">${e.side}</span> <span style="font-size:12.5px;color:#fff">${e.acc}</span></div>
+      <span style="font-size:12.5px;font-weight:700;color:#fff">${fmt2(e.amt)}</span>
+    </div>`).join('');
+  // Update docno label
+  if($('ent-docno'))$('ent-docno').textContent=$('f-docno')?.value||'';
 }
 async function saveEntry(){
   const amt=parseFloat($('f-amt').value)||0;const ttl=($('f-ttl').value||'').trim();
   if(!amt||!ttl){alert('กรุณาใส่จำนวนเงินและรายละเอียด');return}
-  const v=S.hasVAT?amt-amt/1.07:0;
-  const row={business_id:S.bizId,kind:S.eKind,title:ttl,category:S.selCat,amount:amt,vat:v,has_vat:S.hasVAT,txn_date:$('f-dt').value||todayISO(),note:$('f-note')?.value||'',source:'manual'};
+  const vatAmt=S.hasVAT?Math.round((amt-amt/1.07)*100)/100:0;
+  const base=S.hasVAT?Math.round((amt/1.07)*100)/100:amt;
+  const whtAmt=S.eWHT?Math.round(base*(S.eWHT/100)*100)/100:0;
+  const row={
+    business_id:S.bizId,type:S.eKind,kind:S.eKind,title:ttl,vendor:ttl,
+    category:S.selCat,amount:amt,vat:vatAmt,has_vat:S.hasVAT,
+    wht_rate:S.eWHT,wht_amount:whtAmt,
+    pay_method:S.ePayMethod,bank_account:$('f-bank-acc')?.value||'',
+    doc_no:$('f-docno')?.value||'',
+    date:$('f-dt').value||todayISO(),txn_date:$('f-dt').value||todayISO(),
+    note:$('f-note')?.value||'',source:'manual'
+  };
   let err;
   if(S.eTxnId){({error:err}=await sb.from('transactions').update(row).eq('id',S.eTxnId));}
   else{({error:err}=await sb.from('transactions').insert(row));}
@@ -2638,6 +2794,85 @@ async function copyReport(){
     `รายการล่าสุด:`,top5||'  (ยังไม่มีรายการ)',``,`— BillDEE AI —`].join('\n');
   try{await navigator.clipboard.writeText(text);toast('คัดลอกรายงานแล้ว — วางใน LINE ได้เลย');}
   catch(e){prompt('คัดลอกข้อความนี้:',text);}
+}
+
+// ── BANK RECONCILIATION ──────────────────────────────────────
+let BANK_STMT=[];
+function openBankRecon(){
+  openOv('s-bank');
+  const now=new Date();
+  const y=now.getFullYear(),m=now.getMonth()+1;
+  const first=`${y}-${String(m).padStart(2,'0')}-01`;
+  const last=`${y}-${String(m).padStart(2,'0')}-${new Date(y,m,0).getDate()}`;
+  if($('bank-date-from'))$('bank-date-from').value=first;
+  if($('bank-date-to'))$('bank-date-to').value=last;
+  if($('bank-acno'))$('bank-acno').value=S.biz?.bank_account||'';
+  BANK_STMT=[];bankReconCalc();
+}
+async function bankReconCalc(){
+  const from=$('bank-date-from')?.value,to=$('bank-date-to')?.value;
+  if(!from||!to)return;
+  let sysTxns=[];
+  try{
+    const{data}=await sb.from('transactions').select('*')
+      .eq('business_id',S.bizId).gte('date',from).lte('date',to);
+    sysTxns=data||[];
+  }catch(e){}
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const sysIncome=sysTxns.filter(t=>t.type==='income'||t.kind==='income');
+  const sysExpense=sysTxns.filter(t=>t.type==='expense'||t.kind==='expense');
+  const sysTotalIn=sysIncome.reduce((s,t)=>s+(t.amount||0),0);
+  const sysTotalOut=sysExpense.reduce((s,t)=>s+(t.amount||0),0);
+  si('bank-sys-list',sysTxns.slice(0,8).map(t=>`
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--ln);font-size:11px">
+      <div style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title||t.vendor||'—'}</div>
+      <div style="font-weight:700;color:${(t.type||t.kind)==='income'?'var(--t700)':'#e25563'}">${(t.type||t.kind)==='income'?'+':'-'}${fmt(t.amount)}</div>
+    </div>`).join('')+(sysTxns.length>8?`<div style="font-size:11px;color:var(--i3);padding:4px">+${sysTxns.length-8} รายการ</div>`:''));
+  si('bank-sys-total',`ยอดคงเหลือ: ${fmt(sysTotalIn-sysTotalOut)}`);
+  // Statement side
+  const stmtIn=BANK_STMT.filter(s=>s.amt>0).reduce((a,s)=>a+s.amt,0);
+  const stmtOut=BANK_STMT.filter(s=>s.amt<0).reduce((a,s)=>a+Math.abs(s.amt),0);
+  const stmtNet=stmtIn-stmtOut;
+  const sysNet=sysTotalIn-sysTotalOut;
+  si('bank-stmt-list',BANK_STMT.length?BANK_STMT.slice(0,8).map(s=>`
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--ln);font-size:11px">
+      <div style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.desc}</div>
+      <div style="font-weight:700;color:${s.amt>=0?'#0b7c87':'#e25563'}">${s.amt>=0?'+':''}${fmt(s.amt)}</div>
+    </div>`).join(''):`<div style="font-size:11px;color:var(--i3);padding:8px 0">วาง Statement ด้านล่าง</div>`);
+  si('bank-stmt-total',BANK_STMT.length?`ยอดคงเหลือ: ${fmt(stmtNet)}`:'—');
+  const diff=Math.abs(sysNet-stmtNet);
+  const matched=diff<1;
+  si('bank-result',`
+    <div class="card" style="padding:10px;text-align:center;background:${matched?'var(--green)':'var(--t50)'}">
+      <div style="font-size:10px;font-weight:700;color:${matched?'#fff':'var(--t700)'}">${matched?'✓ ตรงกัน':'ระบบ'}</div>
+      <div style="font-size:14px;font-weight:800;color:${matched?'#fff':'var(--t700)'}">${fmt(sysNet)}</div>
+    </div>
+    <div class="card" style="padding:10px;text-align:center;background:${BANK_STMT.length?(matched?'var(--green)':'#fff0c0'):'#f4f4f4'}">
+      <div style="font-size:10px;font-weight:700;color:${matched?'#fff':'#9a7200'}">${BANK_STMT.length?(matched?'✓ ตรงกัน':'! ยอดต่าง'):'Statement'}</div>
+      <div style="font-size:14px;font-weight:800;color:${matched?'#fff':'#9a7200'}">${BANK_STMT.length?fmt(stmtNet):'—'}</div>
+    </div>
+    <div class="card" style="padding:10px;text-align:center;background:${matched?'var(--green)':(BANK_STMT.length?'#ffe5e5':'#f4f4f4')}">
+      <div style="font-size:10px;font-weight:700;color:${matched?'#fff':'#c0392b'}">${matched?'✓':'ผลต่าง'}</div>
+      <div style="font-size:14px;font-weight:800;color:${matched?'#fff':'#c0392b'}">${BANK_STMT.length?fmt(diff):'—'}</div>
+    </div>
+  `);
+}
+function parseStmtInput(){
+  const raw=($('bank-stmt-input')?.value||'').trim();
+  if(!raw)return;
+  BANK_STMT=[];
+  raw.split('\n').forEach(line=>{
+    if(!line.trim())return;
+    const parts=line.split(',').map(s=>s.trim());
+    if(parts.length>=3){
+      const amt=parseFloat(parts[parts.length-1].replace(/[,\s]/g,''));
+      if(!isNaN(amt))BANK_STMT.push({date:parts[0],desc:parts.slice(1,-1).join(' '),amt});
+    }else if(parts.length===2){
+      const amt=parseFloat(parts[1].replace(/[,\s]/g,''));
+      if(!isNaN(amt))BANK_STMT.push({date:'',desc:parts[0],amt});
+    }
+  });
+  bankReconCalc();toast(`วิเคราะห์ Statement ${BANK_STMT.length} รายการ`);
 }
 
 // ── HELPER: build month options ───────────────────────────────
