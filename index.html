@@ -1462,6 +1462,7 @@ function txnIc(cat,kind){
 function toast(msg){si('ti',ic('check',15,'#fff'));si('tm',esc(msg));const t=$('toast');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2400)}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function toBase64(f){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsDataURL(f)})}
+function compressB64(b64,maxPx=800,quality=0.75){return new Promise(r=>{const img=new Image();img.onload=()=>{const s=Math.min(1,maxPx/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',quality).split(',')[1]);};img.src='data:image/jpeg;base64,'+b64;})}
 
 // ── Phase 1.1: Image Compression + Contrast ───────────────────
 // Resize to max 1600px, convert to JPEG 0.82 quality, boost contrast slightly.
@@ -2616,32 +2617,38 @@ async function handleSlipUpload(input){
   preview.style.display='block';
 }
 async function verifySlip(imgB64){
-  // Show verifying step
   ['pay-s2-pp','pay-s2-bt'].forEach(id=>$(id).className='pay-step');
   $('pay-s3').className='pay-step on';
   try{
+    // Compress image to max 800px before sending/storing
+    const compressed=await compressB64(imgB64,800,0.75);
     const res=await fetch('/api/verify-slip',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({imageBase64:imgB64,expectedAmount:PAY.amount,refCode:PAY.ref})
+      body:JSON.stringify({imageBase64:compressed,expectedAmount:PAY.amount,refCode:PAY.ref})
     });
     const json=await res.json();
     $('pay-s3').className='pay-step';
-    // Save to payment_requests always (admin can see all)
-    await sb.from('payment_requests').insert({
-      business_id:S.bizId,
-      biz_name:S.biz?.name||'',
-      plan:PAY.plan,
-      amount:PAY.amount,
-      ref_code:PAY.ref,
-      slip_img:`data:image/jpeg;base64,${imgB64}`,
-      ai_amount:json.slip?.amount||null,
-      ai_date:json.slip?.date||null,
-      ai_ref:json.slip?.ref_no||null,
-      ai_verified:json.verified||false,
-      ai_reason:json.reason||'',
-      status:json.verified?'auto_approved':'pending',
-    }).catch(e=>console.warn('payment_requests insert',e));
+
+    // Save via API (bypasses LINE user RLS issue)
+    await fetch('/api/save-payment',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        business_id:S.bizId,
+        biz_name:S.biz?.name||'',
+        plan:PAY.plan,
+        amount:PAY.amount,
+        ref_code:PAY.ref,
+        slip_img:`data:image/jpeg;base64,${compressed}`,
+        ai_amount:json.slip?.amount||null,
+        ai_date:json.slip?.date||null,
+        ai_ref:json.slip?.ref_no||null,
+        ai_verified:json.verified||false,
+        ai_reason:json.reason||'',
+        status:json.verified?'auto_approved':'pending',
+      })
+    }).catch(e=>console.warn('save-payment',e));
 
     if(json.verified){
       await sb.from('businesses').update({
