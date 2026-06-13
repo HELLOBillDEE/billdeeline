@@ -1590,6 +1590,7 @@ function paintIcons(){
 
 async function init(){
   initSB();paintIcons();
+  if(sessionStorage.getItem('bd_logout')){sessionStorage.removeItem('bd_logout');showScreen('s-login');return;}
   // 1) ตรวจ Supabase Auth session (ผู้ใช้ email)
   try{
     const{data:{session}}=await sb.auth.getSession();
@@ -1618,7 +1619,7 @@ function handleDeepLink(){
   const q=p.get('action')||'';
   if(q==='register'){
     if(!S.biz){showScreen('s-onboard');}
-    // already handled by loadOrCreateBiz if no biz
+    else{switchTab('home');toast('คุณสมัครใช้งานแล้ว ✓');}
   }else if(q==='scan'){
     openScan();
   }else if(q==='income'){
@@ -2508,7 +2509,7 @@ function applyPlan(){
 // ── PAYMENT (PromptPay + Slip Verify) ────────────────────────
 const PAY={method:'promptpay',plan:'smart',cycle:'monthly',ref:'',amount:0};
 
-// PromptPay EMV QR payload generator (no external lib needed)
+// PromptPay EMV QR payload generator — Thai PromptPay standard
 function promptPayQR(phoneOrTaxId,amount){
   function crc16(str){
     let crc=0xFFFF;
@@ -2518,13 +2519,23 @@ function promptPayQR(phoneOrTaxId,amount){
     }
     return(crc&0xFFFF).toString(16).toUpperCase().padStart(4,'0');
   }
-  function f(id,v){const l=String(v.length).padStart(2,'0');return`${id}${l}${v}`}
+  function tlv(tag,v){return`${tag}${String(v.length).padStart(2,'0')}${v}`}
   let target=(phoneOrTaxId||'').replace(/\D/g,'');
-  if(target.startsWith('0'))target='66'+target.slice(1);
-  const typeCode=target.length<=13&&target.startsWith('66')?'01':'02';
-  const merchant=f('00','0001')+f(typeCode,target);
-  let payload=f('00','01')+f('01','12')+f('29',merchant)+f('53','764')+
-    (amount?f('54',amount.toFixed(2)):'')+f('58','TH')+f('59','BillDEE')+f('60','Bangkok')+'6304';
+  let aid,accountId;
+  if(target.length===13){
+    aid='A000000677010114'; // เลขประจำตัวผู้เสียภาษี / บัตรประชาชน
+    accountId=tlv('02',target);
+  }else{
+    if(target.startsWith('0'))target='0066'+target.slice(1); // 098... → 0066 98...
+    else if(target.startsWith('66'))target='00'+target;      // 6698... → 006698...
+    aid='A000000677010111'; // เบอร์มือถือ
+    accountId=tlv('01',target);
+  }
+  const merchantInfo=tlv('00',aid)+accountId;
+  const initMethod=amount?'12':'11'; // 12=dynamic (ล็อคยอด), 11=static
+  let payload=tlv('00','01')+tlv('01',initMethod)+tlv('29',merchantInfo)+
+    tlv('53','764')+(amount?tlv('54',amount.toFixed(2)):'')+
+    tlv('58','TH')+tlv('59','BillDEE')+tlv('60','Bangkok')+'6304';
   return payload+crc16(payload);
 }
 
@@ -3820,8 +3831,10 @@ $('btn-login').addEventListener('click',async function(){
 });
 function logout(){
   if(!confirm('ออกจากระบบ?'))return;
-  if(S.authType==='email'){sb.auth.signOut().then(()=>location.reload());}
-  else{try{liff.logout();}catch(e){}location.reload();}
+  if(S.authType==='email'){sb.auth.signOut().then(()=>location.reload());return;}
+  sessionStorage.setItem('bd_logout','1');
+  try{liff.logout();}catch(e){}
+  location.reload();
 }
 
 // ── BOOT ──────────────────────────────────────────────────────
