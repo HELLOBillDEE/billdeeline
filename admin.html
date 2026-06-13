@@ -104,9 +104,9 @@ let curFilter='all';
 async function adminLogin(){
   const email=document.getElementById('adm-email').value.trim();
   const pass=document.getElementById('adm-pass').value;
-  if(email!==ADMIN_EMAIL){document.getElementById('login-err').textContent='ไม่มีสิทธิ์เข้าถึง';return}
   const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){document.getElementById('login-err').textContent=error.message;return}
+  if(data.user.email!==ADMIN_EMAIL){await sb.auth.signOut();document.getElementById('login-err').textContent='ไม่มีสิทธิ์เข้าถึง';return}
   showMain();
 }
 
