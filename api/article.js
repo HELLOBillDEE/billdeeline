@@ -105,6 +105,7 @@ h1{font-size:clamp(22px,5vw,32px);font-weight:800;line-height:1.3;margin-bottom:
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="logo">💚 BillDEE</a>
+    <a href="https://liff.line.me/2010347722-o8ofu42K" style="font-size:13px;color:#0b6b73;font-weight:700">← กลับแอป</a>
     <a href="https://liff.line.me/2010347722-o8ofu42K" class="nav-cta">ทดลองฟรี</a>
   </div>
 </nav>
