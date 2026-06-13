@@ -803,8 +803,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         </div>
         <div style="background:var(--grad);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px" id="pay-trial-badge" style="display:none">🎁 ทดลอง 14 วัน</div>
       </div>
-      <div style="font-size:13.5px;font-weight:700;color:var(--i2);margin-bottom:10px">เลือกวิธีชำระเงิน</div>
-      <div class="pm-grid">
+      <div style="font-size:13.5px;font-weight:700;color:var(--i2);margin-bottom:10px">ชำระผ่าน PromptPay</div>
+      <div class="pm-grid" style="display:none">
         <button class="pm-btn on" id="pm-pp" onclick="selectPayMethod('promptpay')">
           <svg width="38" height="38" viewBox="0 0 38 38"><rect width="38" height="38" rx="11" fill="#004B87"/><text x="19" y="26" text-anchor="middle" font-size="14" fill="#fff" font-weight="800">PP</text></svg>
           <span>PromptPay</span>
@@ -814,7 +814,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
           <span>โอนธนาคาร</span>
         </button>
       </div>
-      <button class="btn btn-p" onclick="goPayStep2()" id="pay-next-btn">ถัดไป →</button>
+      <button class="btn btn-p" onclick="PAY.method='promptpay';goPayStep2()" id="pay-next-btn">สแกน QR PromptPay →</button>
     </div>
 
     <!-- Step 2A: PromptPay QR -->
@@ -2530,8 +2530,7 @@ async function goPayStep2(){
     si('pp-amount',`฿${fmt(PAY.amount)}`);
     si('pp-ref',PAY.ref);
     // PromptPay number — ดึงจากข้อมูลธุรกิจ (เบอร์โทร หรือ เลขภาษี)
-    const ppNumber=S.biz?.promptpay||S.biz?.phone||S.biz?.tax_id||'';
-    if(!ppNumber){toast('กรุณากรอกเบอร์ PromptPay ในข้อมูลธุรกิจก่อน');return;}
+    const ppNumber='0981020284'; // BillDEE PromptPay
     const payload=promptPayQR(ppNumber,PAY.amount);
     await drawQR('pp-qr-canvas',payload);
   }else{
@@ -2572,23 +2571,35 @@ async function verifySlip(imgB64){
     });
     const json=await res.json();
     $('pay-s3').className='pay-step';
+    // Save to payment_requests always (admin can see all)
+    await sb.from('payment_requests').insert({
+      business_id:S.bizId,
+      biz_name:S.biz?.name||'',
+      plan:PAY.plan,
+      amount:PAY.amount,
+      ref_code:PAY.ref,
+      slip_img:`data:image/jpeg;base64,${imgB64}`,
+      ai_amount:json.slip?.amount||null,
+      ai_date:json.slip?.date||null,
+      ai_ref:json.slip?.ref_no||null,
+      ai_verified:json.verified||false,
+      ai_reason:json.reason||'',
+      status:json.verified?'auto_approved':'pending',
+    }).catch(e=>console.warn('payment_requests insert',e));
+
     if(json.verified){
-      // Auto-approve: update plan
-      await sb.from('businesses').update({plan:PAY.plan}).eq('id',S.bizId);
+      await sb.from('businesses').update({
+        plan:PAY.plan,
+        plan_started_at:new Date().toISOString(),
+        plan_expire_at:new Date(Date.now()+31*24*60*60*1000).toISOString(),
+      }).eq('id',S.bizId);
       S.biz.plan=PAY.plan;
       $('pay-s4').className='pay-step on';
       si('pay-suc-ttl','ชำระเงินสำเร็จ! 🎉');
       si('pay-suc-msg',`อัปเกรดเป็น BillDEE ${PLANS[PAY.plan].name} แล้ว<br/>ขอบคุณที่ใช้บริการ 🙏`);
       renderMore();
     }else{
-      // Manual review needed
       $('pay-s5').className='pay-step on';
-      // Save slip record to Supabase for admin review
-      await sb.from('payment_pending').insert({
-        business_id:S.bizId,plan:PAY.plan,amount:PAY.amount,
-        ref_code:PAY.ref,slip_b64:imgB64.slice(0,100),// store only thumbnail ref
-        ai_result:json,created_at:new Date().toISOString()
-      }).catch(()=>{}); // table may not exist yet — silent fail
     }
   }catch(e){
     console.error('verify-slip error',e);
