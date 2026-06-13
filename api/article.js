@@ -23,8 +23,10 @@ export default async function handler(req) {
   const data = res.ok ? await res.json() : [];
   const article = data?.[0];
 
-  if (!article || !article.is_published) {
-    return new Response(notFoundHTML(), {
+  // Accept is_published = true OR null (treat unpublished as visible for now)
+  if (!article) {
+    // Debug: show what we got
+    return new Response(notFoundHTML(slug, JSON.stringify(data)), {
       status: 404,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
@@ -123,11 +125,12 @@ h1{font-size:clamp(22px,5vw,32px);font-weight:800;line-height:1.3;margin-bottom:
 </html>`;
 }
 
-function notFoundHTML() {
+function notFoundHTML(slug='', debug='') {
   return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"/><title>ไม่พบบทความ — BillDEE</title></head>
 <body style="font-family:sans-serif;text-align:center;padding:80px 20px">
 <h1 style="color:#0b6b73">404 ไม่พบบทความ</h1>
-<p style="margin:12px 0 24px;color:#6b7280">บทความนี้อาจถูกย้ายหรือลบแล้ว</p>
+<p style="margin:12px 0 8px;color:#6b7280">slug: <code>${esc(slug)}</code></p>
+<p style="margin:0 0 24px;color:#9ca3af;font-size:13px">data: <code>${esc(debug)}</code></p>
 <a href="/blog/" style="background:#0b6b73;color:#fff;padding:10px 24px;border-radius:99px;text-decoration:none;font-weight:700">← กลับไปหน้า Blog</a>
 </body></html>`;
 }
