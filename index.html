@@ -2139,6 +2139,11 @@ async function saveFromOCR(){
 
   closeOv('s-ext');await loadTxns();
 
+  // Notify LINE user
+  fetch('/api/notify-bill',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({business_id:S.bizId,bill_type:txnRow.kind,amount:txnRow.amount,note:txnRow.cat||''})
+  }).catch(()=>{});
+
   // 2) ส่งข้อมูลไป Google Apps Script (Sheet + Drive) ถ้าตั้งค่าไว้
   const scriptUrl=S.biz?.gscript_url||'';
   if(scriptUrl){
@@ -2338,6 +2343,12 @@ async function saveEntry(){
     else{({error:err}=await sb.from('transactions').insert(slim));}
   }
   if(err){alert('บันทึกไม่สำเร็จ: '+err.message);return}
+  // Notify LINE user
+  if(!S.eTxnId){
+    fetch('/api/notify-bill',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({business_id:S.bizId,bill_type:row.kind,amount:row.amount,note:row.cat||row.note||''})
+    }).catch(()=>{});
+  }
   // recurring: create entries for remaining months of this year
   if(S.eRecurring&&!S.eTxnId&&row.kind==='income'){
     const today=new Date();const yr=today.getFullYear();
