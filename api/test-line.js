@@ -10,26 +10,37 @@ const ADMIN_LINE_ID = 'U96ea6930e32013f700ff5933eb4b8dc6';
 export default async function handler(req) {
   const to = new URL(req.url).searchParams.get('to') || ADMIN_LINE_ID;
 
+  const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms));
+
+  let botInfo = {}, botStatus = 0, pushResult = {}, pushStatus = 0;
+
   // Check token info
-  const profileRes = await fetch('https://api.line.me/v2/bot/info', {
-    headers: { Authorization: `Bearer ${LINE_CHANNEL_TOKEN}` }
-  });
-  const botInfo = await profileRes.json().catch(() => ({}));
+  try {
+    const profileRes = await Promise.race([
+      fetch('https://api.line.me/v2/bot/info', { headers: { Authorization: `Bearer ${LINE_CHANNEL_TOKEN}` } }),
+      timeout(5000)
+    ]);
+    botStatus = profileRes.status;
+    botInfo = await profileRes.json().catch(() => ({}));
+  } catch (e) { botInfo = { error: e.message }; }
 
   // Try push
-  const pushRes = await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LINE_CHANNEL_TOKEN}` },
-    body: JSON.stringify({
-      to,
-      messages: [{ type: 'text', text: '🔧 BillDEE LINE test — token ใช้งานได้แล้ว!' }]
-    })
-  });
-  const pushResult = await pushRes.json().catch(() => ({}));
+  try {
+    const pushRes = await Promise.race([
+      fetch('https://api.line.me/v2/bot/message/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LINE_CHANNEL_TOKEN}` },
+        body: JSON.stringify({ to, messages: [{ type: 'text', text: '🔧 BillDEE LINE test' }] })
+      }),
+      timeout(5000)
+    ]);
+    pushStatus = pushRes.status;
+    pushResult = await pushRes.json().catch(() => ({}));
+  } catch (e) { pushResult = { error: e.message }; }
 
   return new Response(JSON.stringify({
-    bot_info: { status: profileRes.status, ...botInfo },
-    push: { status: pushRes.status, ...pushResult },
+    bot_info: { status: botStatus, ...botInfo },
+    push: { status: pushStatus, ...pushResult },
     token_prefix: LINE_CHANNEL_TOKEN.slice(0, 20) + '...',
     target_user: to,
   }, null, 2), {
