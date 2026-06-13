@@ -401,7 +401,13 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <!-- REPORT -->
     <div class="tab-p" id="tab-report">
       <div style="padding:8px 16px 14px;display:flex;align-items:center;justify-content:space-between">
-        <div><div style="font-size:18px;font-weight:800">รายงานสรุป</div><div style="font-size:12px;color:var(--i3)">ภาพรวมการเงินของกิจการ</div></div>
+        <div><div style="font-size:18px;font-weight:800">รายงานสรุป</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <button onclick="shiftRepMonth(-1)" style="border:none;background:none;font-size:18px;cursor:pointer;padding:0 2px;color:var(--t700)">‹</button>
+            <div style="font-size:13px;font-weight:700;color:var(--t700);min-width:90px;text-align:center" id="rep-month-lbl">—</div>
+            <button onclick="shiftRepMonth(1)" id="rep-next-btn" style="border:none;background:none;font-size:18px;cursor:pointer;padding:0 2px;color:var(--t700)">›</button>
+          </div>
+        </div>
         <div style="display:flex;gap:8px">
           <button class="ic-btn" onclick="copyReport()" id="copy-btn" title="Copy ส่ง LINE"></button>
           <button class="ic-btn" onclick="openPDF()" id="pdf-btn" title="PDF Statement"></button>
@@ -1365,7 +1371,7 @@ const MTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.
 const FMTH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 // ── STATE ─────────────────────────────────────────────────────
-const S={uid:null,bizId:null,biz:null,txns:[],tab:'home',flt:'all',
+const S={uid:null,bizId:null,biz:null,txns:[],tab:'home',flt:'all',repMonth:null,
   selPlan:'smart',cycle:'monthly',
   eMode:'new',eTxnId:null,hasVAT:false,eKind:'expense',selCat:'วัตถุดิบ',
   ocrRes:null,ocrCat:'วัตถุดิบ',ocrImage:null,ocrImageType:null,
@@ -1426,9 +1432,29 @@ function sh(id){$(id)?.classList.add('on')}
 function hd(id){$(id)?.classList.remove('on')}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function todayISO(){return new Date().toISOString().slice(0,10)}
-function nowMonth(){const d=new Date();return`${FMTH[d.getMonth()]} ${d.getFullYear()+543}`}
-function firstOfMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
-function lastOfMonth(){const d=new Date();return new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10)}
+function repDate(){
+  if(S.repMonth)return new Date(S.repMonth+'-01');
+  const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1);
+}
+function nowMonth(){const d=repDate();return`${FMTH[d.getMonth()]} ${d.getFullYear()+543}`}
+function firstOfMonth(){const d=repDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
+function lastOfMonth(){const d=repDate();return new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10)}
+function shiftRepMonth(dir){
+  const d=repDate();
+  d.setMonth(d.getMonth()+dir);
+  const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const now=new Date();const nowKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  S.repMonth=key===nowKey?null:key;
+  updRepMonthUI();loadTxns();
+}
+function updRepMonthUI(){
+  const lbl=$('rep-month-lbl');if(lbl)lbl.textContent=nowMonth();
+  const nxt=$('rep-next-btn');if(nxt){
+    const d=repDate();const now=new Date();
+    nxt.style.opacity=(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth())?'0.3':'1';
+    nxt.disabled=(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth());
+  }
+}
 function txnIc(cat,kind){
   const m={วัตถุดิบ:'wallet','ค่าเช่า':'building',เงินเดือน:'user','ค่าน้ำ-ไฟ':'flash',ค่าเดินทาง:'flash',วัสดุสำนักงาน:'doc',การตลาด:'sparkle',รายได้:'store'};
   return kind==='income'?'store':(m[cat]||'receipt');
@@ -1490,7 +1516,7 @@ function switchTab(t){
     const b=$('nb-'+x);if(b)b.className='nb'+(x===t?' on':'');
   });
   if(t==='entries')renderEntries();
-  if(t==='report')renderReport();
+  if(t==='report'){updRepMonthUI();renderReport();}
   if(t==='more')renderMore();
 }
 
