@@ -1582,7 +1582,24 @@ async function init(){
     S.uid=p.userId;S.authType='line';
     await loadOrCreateBiz(p);
     showScreen('s-main');renderMain();loadTxns();
+    setTimeout(handleDeepLink,300);
   }catch(e){console.error('init',e);showScreen('s-login')}
+}
+
+function handleDeepLink(){
+  const p=new URLSearchParams(window.location.search);
+  const action=p.get('action')||liff.getDecodedIDToken?.()?.['https://access.line.me/amr']?.[0]||'';
+  const q=p.get('action')||'';
+  if(q==='register'){
+    if(!S.biz){showScreen('s-onboard');}
+    // already handled by loadOrCreateBiz if no biz
+  }else if(q==='scan'){
+    openScan();
+  }else if(q==='income'){
+    openEntry('income');
+  }else if(q==='expense'){
+    openEntry('expense');
+  }
 }
 
 async function loadOrCreateBiz(profile){
