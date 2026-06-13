@@ -48,11 +48,21 @@ export default async function handler(req) {
       text: `💰 สลิปใหม่เข้า! BillDEE\n👤 ${body.biz_name||'ไม่ระบุ'}\n📦 ${planName}\n💵 ฿${body.amount}\n🔖 ref: ${body.ref_code}\n${aiStatus}\n👉 https://billdeeline-git-main-billdee-s-projects.vercel.app/admin.html`
     }]
   };
-  await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}` },
-    body: JSON.stringify(adminMsg),
-  }).catch(e => console.warn('LINE push admin failed:', e));
+  let lineError = null;
+  try {
+    const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}` },
+      body: JSON.stringify(adminMsg),
+    });
+    if (!lineRes.ok) {
+      lineError = await lineRes.json().catch(() => lineRes.text());
+      console.error('LINE push admin failed:', JSON.stringify(lineError));
+    }
+  } catch (e) {
+    lineError = e.message;
+    console.error('LINE push admin error:', e.message);
+  }
 
-  return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  return new Response(JSON.stringify({ ok: true, line_error: lineError }), { status: 200 });
 }
