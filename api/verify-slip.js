@@ -3,9 +3,9 @@
 // Returns: { verified: boolean, slip: object, confidence: string, reason: string }
 
 const GEMINI_MODELS = [
+  'gemini-3.5-flash',
   'gemini-2.5-flash',
-  'gemini-2.0-flash-001',
-  'gemini-1.5-flash-001',
+  'gemini-2.0-flash',
 ];
 
 export default async function handler(req, res) {
