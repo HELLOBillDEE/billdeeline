@@ -1668,6 +1668,7 @@ async function createBiz(){
     data=r.data;error=r.error;
     if(!error&&data)await sb.from('business_members').insert({business_id:data.id,user_id:S.uid,role:'owner'});
   }else{
+    if(!S.uid){alert('ไม่พบข้อมูล LINE กรุณาเปิดแอปผ่าน LINE');$('btn-ob').disabled=false;return}
     const apiRes=await fetch('/api/create-business',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1679,7 +1680,7 @@ async function createBiz(){
       })
     });
     const json=await apiRes.json().catch(()=>({}));
-    data=json.data;error=apiRes.ok?null:{message:JSON.stringify(json.error)};
+    data=json.data;error=apiRes.ok?null:{message:JSON.stringify(json.error||json)};
   }
   $('btn-ob').disabled=false;
   if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
@@ -2436,9 +2437,14 @@ async function saveBiz(){
     vat:S.bizVAT,
   };
   const btn=$('save-biz-btn');if(btn)btn.disabled=true;
-  const{data,error}=await sb.from('businesses').update(row).eq('id',S.bizId).select().single();
+  const updRes=await fetch('/api/update-business',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({business_id:S.bizId,...row})
+  });
   if(btn)btn.disabled=false;
-  if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
+  const updJson=await updRes.json().catch(()=>({}));
+  if(!updRes.ok){alert('บันทึกไม่สำเร็จ: '+JSON.stringify(updJson.error));return}
   S.biz={...S.biz,...row};
   closeOv('s-biz');renderMain();renderMore();toast('บันทึกข้อมูลธุรกิจแล้ว ✓');
 }
