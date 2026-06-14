@@ -12,11 +12,6 @@ export default async function handler(req, res) {
 
   let botInfo = {}, botStatus = 0, pushResult = {}, pushStatus = 0;
 
-  const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms));
-
-  let botInfo = {}, botStatus = 0, pushResult = {}, pushStatus = 0;
-
-  // Check token info
   try {
     const profileRes = await Promise.race([
       fetch('https://api.line.me/v2/bot/info', { headers: { Authorization: `Bearer ${LINE_CHANNEL_TOKEN}` } }),
@@ -26,7 +21,6 @@ export default async function handler(req, res) {
     botInfo = await profileRes.json().catch(() => ({}));
   } catch (e) { botInfo = { error: e.message }; }
 
-  // Try push
   try {
     const pushRes = await Promise.race([
       fetch('https://api.line.me/v2/bot/message/push', {
@@ -40,13 +34,11 @@ export default async function handler(req, res) {
     pushResult = await pushRes.json().catch(() => ({}));
   } catch (e) { pushResult = { error: e.message }; }
 
-  const result = {
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).json({
     bot_info: { status: botStatus, ...botInfo },
     push: { status: pushStatus, ...pushResult },
     token_prefix: LINE_CHANNEL_TOKEN.slice(0, 20) + '...',
     target_user: to,
-  };
-
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200).json(result);
+  });
 }
