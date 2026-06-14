@@ -2668,9 +2668,10 @@ async function verifySlip(imgB64){
       saveJson=await saveRes.json().catch(()=>({}));
       console.log('[BillDEE] save-payment result:',JSON.stringify(saveJson));
       console.log('[BillDEE] verify-slip result:',JSON.stringify(json));
-      if(saveRes.status===409||saveJson.error==='slip_already_used'){
+      if(saveRes.status===409){
         $('pay-s3').className='pay-step';
-        alert('❌ สลิปนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้');
+        const msg=saveJson.error==='already_pending'?'มีรายการรอตรวจสอบอยู่แล้ว กรุณารอการอนุมัติก่อน':'สลิปนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้';
+        alert('❌ '+msg);
         return;
       }
     }

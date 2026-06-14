@@ -180,18 +180,13 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 
 async function approve(id,bizId,plan){
   const btn=event.target;btn.disabled=true;btn.textContent='กำลังอนุมัติ…';
-  const expire=new Date(Date.now()+31*24*60*60*1000).toISOString();
-  const[r1,r2]=await Promise.all([
-    sb.from('payment_requests').update({status:'approved',approved_at:new Date().toISOString()}).eq('id',id),
-    sb.from('businesses').update({plan,plan_started_at:new Date().toISOString(),plan_expire_at:expire}).eq('id',bizId),
-  ]);
-  if(r1.error||r2.error){alert('Error: '+(r1.error||r2.error).message);btn.disabled=false;btn.textContent='✓ อนุมัติ';return}
-  // Push LINE message to user
-  await fetch('/api/notify-user',{
+  const res=await fetch('/api/approve-payment',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({business_id:bizId,plan})
-  }).catch(e=>console.warn('notify-user',e));
+    body:JSON.stringify({payment_id:id,business_id:bizId,plan})
+  });
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok||json.error){alert('Error: '+JSON.stringify(json.error));btn.disabled=false;btn.textContent='✓ อนุมัติ';return}
   await loadData();
 }
 
