@@ -36,7 +36,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.1)}}
 @keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
-@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
 
 /* SCREENS */
 .bd-s,.bd-ov{position:fixed;inset:0;display:none;flex-direction:column;z-index:1;background:var(--bg)}
@@ -2663,8 +2663,9 @@ async function verifySlip(imgB64){
         status:json.verified?'auto_approved':'pending',
       })
     });
+    let saveJson={};
     if(saveRes){
-      const saveJson=await saveRes.json().catch(()=>({}));
+      saveJson=await saveRes.json().catch(()=>({}));
       if(saveRes.status===409||saveJson.error==='slip_already_used'){
         $('pay-s3').className='pay-step';
         alert('❌ สลิปนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้');
@@ -2678,6 +2679,8 @@ async function verifySlip(imgB64){
       si('pay-suc-ttl','ชำระเงินสำเร็จ! 🎉');
       si('pay-suc-msg',`อัปเกรดเป็น BillDEE ${PLANS[PAY.plan].name} แล้ว<br/>ขอบคุณที่ใช้บริการ 🙏`);
       renderMore();
+      // Show feature popup after short delay
+      setTimeout(()=>showPlanUpgradePopup(PAY.plan),1200);
     }else{
       $('pay-s5').className='pay-step on';
     }
@@ -3859,6 +3862,49 @@ function logout(){
   sessionStorage.setItem('bd_logout','1');
   try{liff.logout();}catch(e){}
   location.reload();
+}
+
+// ── PLAN UPGRADE POPUP ────────────────────────────────────────
+function showPlanUpgradePopup(plan){
+  const features={
+    basic:[
+      {ic:'📄',t:'บันทึกบิลและใบแจ้งหนี้','d':'สร้างและส่งบิลให้ลูกค้าได้ไม่จำกัด'},
+      {ic:'📊',t:'รายงานรายรับ-รายจ่าย','d':'ดูสรุปรายเดือนได้ทันที'},
+      {ic:'🤖',t:'สแกนบิลด้วย AI','d':'ถ่ายรูปบิล ระบบอ่านยอดให้อัตโนมัติ'},
+    ],
+    smart:[
+      {ic:'📄',t:'ทุกอย่างใน Basic','d':''},
+      {ic:'🧮',t:'คำนวณภาษี VAT & WHT','d':'คำนวณภาษีหัก ณ ที่จ่ายอัตโนมัติ'},
+      {ic:'📁',t:'ส่งออก Excel/PDF','d':'ดาวน์โหลดรายงานได้ทุกรูปแบบ'},
+      {ic:'👥',t:'จัดการลูกค้า-supplier','d':'บันทึกข้อมูลคู่ค้าได้ไม่จำกัด'},
+    ],
+    pro:[
+      {ic:'⭐',t:'ทุกอย่างใน Smart','d':''},
+      {ic:'🔗',t:'Google Sheets Sync','d':'ข้อมูลซิงก์ไป Sheet อัตโนมัติ'},
+      {ic:'📑',t:'ภ.พ.30 & ภ.ง.ด.','d':'เตรียมแบบภาษีได้ครบในแอปเดียว'},
+      {ic:'🎯',t:'Priority Support','d':'ทีมงานช่วยเหลือด่วนผ่าน LINE'},
+    ],
+  };
+  const planName={basic:'Basic',smart:'Smart',pro:'Pro'}[plan]||plan;
+  const feats=features[plan]||[];
+  const el=document.createElement('div');
+  el.id='upgrade-popup';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  el.innerHTML=`<div style="background:#fff;border-radius:24px 24px 0 0;padding:28px 20px 36px;width:100%;max-width:480px;animation:slideUp .35s ease">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:48px;margin-bottom:8px">🎉</div>
+      <div style="font-size:20px;font-weight:800;color:#0b6b73">อัปเกรดเป็น ${planName} สำเร็จ!</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px">ฟีเจอร์ใหม่ที่คุณใช้ได้ตอนนี้</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      ${feats.map(f=>`<div style="display:flex;gap:12px;align-items:center;background:#f0fdf4;border-radius:12px;padding:12px 14px">
+        <div style="font-size:24px">${f.ic}</div>
+        <div><div style="font-size:14px;font-weight:700;color:#065f46">${f.t}</div>${f.d?`<div style="font-size:12px;color:#6b7280">${f.d}</div>`:''}</div>
+      </div>`).join('')}
+    </div>
+    <button onclick="document.getElementById('upgrade-popup').remove();closeOv('s-pay')" style="width:100%;background:#0b6b73;color:#fff;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer">🚀 เริ่มใช้งานเลย!</button>
+  </div>`;
+  document.body.appendChild(el);
 }
 
 // ── BOOT ──────────────────────────────────────────────────────
