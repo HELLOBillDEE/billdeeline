@@ -1,6 +1,7 @@
 // api/save-payment.js — Save payment request + LINE notify admin
 
-import { getConfig, requireServiceKey, rateLimit, sanitize, setSecurityHeaders } from './_lib/config.js';
+import { getConfig, requireServiceKey, rateLimit, sanitize, setSecurityHeaders,
+         isValidUUID, isValidPlan } from './_lib/config.js';
 
 const ADMIN_LINE_ID = 'U96ea6930e32013f700ff5933eb4b8dc6';
 
@@ -24,6 +25,17 @@ export default async function handler(req, res) {
 
   const body = req.body;
   if (!body) return res.status(400).json({ error: 'Invalid body' });
+
+  // Validate critical fields before use in DB queries
+  if (body.business_id && !isValidUUID(body.business_id)) {
+    return res.status(400).json({ error: 'Invalid business_id' });
+  }
+  if (body.plan && !isValidPlan(body.plan)) {
+    return res.status(400).json({ error: 'Invalid plan' });
+  }
+  if (body.amount && (isNaN(parseFloat(body.amount)) || parseFloat(body.amount) > 1_000_000)) {
+    return res.status(400).json({ error: 'Invalid amount' });
+  }
 
   // Sanitize string inputs
   const ref_code = sanitize(body.ref_code);
