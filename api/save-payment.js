@@ -1,27 +1,23 @@
-// api/save-payment.js — Save payment request + LINE Notify admin
-
-export const config = { runtime: 'edge' };
+// api/save-payment.js — Save payment request + LINE notify admin
 
 const SB_URL = 'https://cfbknvjkknhfsxnrejlc.supabase.co';
 const LINE_CHANNEL_TOKEN = process.env.LINE_CHANNEL_TOKEN ||
   '8MnBH/AU7cLLkHQq69OzB5oPUPjttbNICw6Qy6yjqD3vajB6n4D4b7jjtuBem1i4pcIIjDImYRs2Zfz5Ow1bwpVRN09VCIDoR3/AnJnYUev9/Zf0wV2ey3QymCdfmtriOVbYxhiZoRak9u2buHS/mAdB04t89/1O/w1cDnyilFU=';
 const ADMIN_LINE_ID = 'U96ea6930e32013f700ff5933eb4b8dc6';
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY ||
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk';
 
-  let body;
-  try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
-  }
+  const body = req.body;
+  if (!body) return res.status(400).json({ error: 'Invalid body' });
 
   // Save to Supabase
-  const res = await fetch(`${SB_URL}/rest/v1/payment_requests`, {
+  const sbRes = await fetch(`${SB_URL}/rest/v1/payment_requests`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -32,10 +28,10 @@ export default async function handler(req) {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
+  if (!sbRes.ok) {
+    const err = await sbRes.text();
     console.error('save-payment error:', err);
-    return new Response(JSON.stringify({ error: err }), { status: 500 });
+    return res.status(500).json({ error: err });
   }
 
   // Push LINE message to admin
@@ -48,6 +44,7 @@ export default async function handler(req) {
       text: `💰 สลิปใหม่เข้า! BillDEE\n👤 ${body.biz_name||'ไม่ระบุ'}\n📦 ${planName}\n💵 ฿${body.amount}\n🔖 ref: ${body.ref_code}\n${aiStatus}\n👉 https://billdeeline-git-main-billdee-s-projects.vercel.app/admin.html`
     }]
   };
+
   let lineError = null;
   try {
     const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -56,7 +53,7 @@ export default async function handler(req) {
       body: JSON.stringify(adminMsg),
     });
     if (!lineRes.ok) {
-      lineError = await lineRes.json().catch(() => lineRes.text());
+      lineError = await lineRes.json().catch(() => ({}));
       console.error('LINE push admin failed:', JSON.stringify(lineError));
     }
   } catch (e) {
@@ -64,5 +61,5 @@ export default async function handler(req) {
     console.error('LINE push admin error:', e.message);
   }
 
-  return new Response(JSON.stringify({ ok: true, line_error: lineError }), { status: 200 });
+  return res.status(200).json({ ok: true, line_error: lineError });
 }
