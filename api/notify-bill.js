@@ -1,27 +1,20 @@
 // api/notify-bill.js — Push LINE message to business owner after bill saved
 
-export const config = { runtime: 'edge' };
-
 const LINE_CHANNEL_TOKEN = process.env.LINE_CHANNEL_TOKEN ||
   '8MnBH/AU7cLLkHQq69OzB5oPUPjttbNICw6Qy6yjqD3vajB6n4D4b7jjtuBem1i4pcIIjDImYRs2Zfz5Ow1bwpVRN09VCIDoR3/AnJnYUev9/Zf0wV2ey3QymCdfmtriOVbYxhiZoRak9u2buHS/mAdB04t89/1O/w1cDnyilFU=';
 
 const SB_URL = 'https://cfbknvjkknhfsxnrejlc.supabase.co';
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk';
 
-  let body;
-  try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
-  }
-
-  const { business_id, bill_type, amount, note } = body;
-  if (!business_id) return new Response(JSON.stringify({ error: 'business_id required' }), { status: 400 });
+  const { business_id, bill_type, amount, note } = req.body || {};
+  if (!business_id) return res.status(400).json({ error: 'business_id required' });
 
   // Get LINE user ID from businesses table
   const bizRes = await fetch(
@@ -32,7 +25,7 @@ export default async function handler(req) {
   const biz = bizData?.[0];
 
   if (!biz?.line_user_id) {
-    return new Response(JSON.stringify({ error: 'No LINE user found' }), { status: 404 });
+    return res.status(404).json({ error: 'No LINE user found' });
   }
 
   const typeLabel = bill_type === 'income' ? '💚 รายรับ' : '🔴 รายจ่าย';
@@ -90,18 +83,15 @@ export default async function handler(req) {
 
   const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}`,
-    },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}` },
     body: JSON.stringify(message),
   });
 
   const lineResult = await lineRes.json().catch(() => ({}));
   if (!lineRes.ok) {
     console.error('LINE push bill notify failed:', JSON.stringify(lineResult));
-    return new Response(JSON.stringify({ error: lineResult }), { status: 500 });
+    return res.status(500).json({ error: lineResult });
   }
 
-  return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  return res.status(200).json({ ok: true });
 }
