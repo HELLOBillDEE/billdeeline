@@ -2888,7 +2888,7 @@ function openPDF(){
         <td style="text-align:right;color:#f0a868">฿${fmt2(vat)}</td>
       </tr></tfoot>
     </table>
-    <div style="margin-top:18px;padding-top:8px;border-top:1px solid #e4eef0;font-size:7.5pt;color:#999;text-align:center">สร้างโดย BillDEE AI Accounting Assistant · billdeeline.vercel.app</div>
+    <div style="margin-top:18px;padding-top:8px;border-top:1px solid #e4eef0;font-size:7.5pt;color:#999;text-align:center">เอกสารนี้ออกโดย LINE @BILLDEE ตัวช่วยงานบัญชีของทุกคน</div>
   </div>`);
   sh('pdf-wrap');
 }
@@ -3092,9 +3092,8 @@ function genDocPDF(){
     ${DOC.whtRate>0?`<div style="margin-top:14px;background:#fffbf0;border-radius:8px;padding:10px 14px;font-size:8.5pt;color:#92400e">
       ⚠️ ผู้จ่ายเงินโปรดหัก ณ ที่จ่าย ${DOC.whtRate}% (฿${fmt2(whtAmt)}) แล้วโอนยอดสุทธิ ฿${fmt2(netPayable)} พร้อมส่ง ภ.ง.ด. ให้กรมสรรพากรภายในวันที่ 7 ของเดือนถัดไป
     </div>`:''}
-    <div style="margin-top:20px;border-top:1px solid #e4eef0;padding-top:14px;display:flex;justify-content:space-between;font-size:8.5pt;color:#888">
-      <div>สร้างโดย BillDEE · billdee.app</div>
-      <div>${today}</div>
+    <div style="margin-top:20px;border-top:1px solid #e4eef0;padding-top:14px;font-size:8.5pt;color:#888;text-align:center">
+      เอกสารนี้ออกโดย LINE @BILLDEE ตัวช่วยงานบัญชีของทุกคน
     </div>
   </div>`;
 
@@ -3706,6 +3705,7 @@ function exportVATReport(type){
     </tr></tfoot>
   </table>
   <p style="font-size:11pt;margin-top:8px;color:#555">* หมายเหตุ: ช่องสถานประกอบการ 00000 = สำนักงานใหญ่ / ตามแบบรายงานภาษีซื้อ-ขาย กรมสรรพากร มีผลบังคับใช้ 1 ม.ค. 2558</p>
+  <p style="font-size:9pt;color:#888;text-align:center;margin-top:16px;border-top:1px solid #ccc;padding-top:8px">เอกสารนี้ออกโดย LINE @BILLDEE ตัวช่วยงานบัญชีของทุกคน</p>
   </body></html>`;
 
   const w=window.open('','_blank','width=1000,height=750');
