@@ -1361,7 +1361,7 @@ const PLANS={
       {t:'P&L Dashboard + กระทบยอดธนาคาร',v:true},
       {t:'จัดการลูกค้า / สินค้า-บริการ ไม่จำกัด',v:true},
       {t:'คำนวณภาษีบุคคลธรรมดา ม.40 ทุกประเภท',v:true},
-      {t:'หลายกิจการ / หลายผู้ใช้',v:false}
+      {t:'เพิ่มสมาชิกเข้าทีม 2 คน',v:true}
     ]},
   pro:{key:'pro',name:'Pro',price:1190,trialDays:0,tag:'ทีม & หลายสาขา',popular:false,
     desc:'ทุกฟีเจอร์ใน Smart รองรับทีมบัญชี 5 คน และธุรกิจหลายกิจการในแอปเดียว',
@@ -2807,7 +2807,30 @@ function addNewBiz(){
 }
 
 // ── INVITE ────────────────────────────────────────────────────
+const MEMBER_LIMIT={basic:0,smart:2,pro:5};
 async function openInvite(){
+  const curPlan=S.biz?.plan||'basic';
+  const limit=MEMBER_LIMIT[curPlan]??0;
+  if(limit===0){
+    openSubscribe();
+    toast('แพ็ก Basic ไม่รองรับการเพิ่มสมาชิก — อัปเกรดเป็น Smart เพื่อเพิ่มได้ 2 คน');
+    return;
+  }
+  // Count current active members (excluding owner)
+  let memberCount=0;
+  try{
+    const{data:members}=await sb.from('business_members').select('id',{count:'exact'})
+      .eq('business_id',S.bizId);
+    memberCount=(members||[]).length;
+  }catch(e){}
+  if(memberCount>=limit){
+    const upgradeMsg=curPlan==='smart'
+      ?`Smart รองรับสมาชิกได้ 2 คน (ครบแล้ว) — อัปเกรดเป็น Pro เพื่อเพิ่มได้ 5 คน`
+      :`Pro รองรับสมาชิกได้สูงสุด 5 คน (ครบแล้ว)`;
+    if(curPlan==='smart'){openSubscribe();}
+    toast(upgradeMsg);
+    return;
+  }
   const{data}=await sb.from('invites').select('*').eq('business_id',S.bizId)
     .eq('used',false).gte('expires_at',new Date().toISOString()).limit(1).single();
   if(data){S.inviteCode=data.code;}
