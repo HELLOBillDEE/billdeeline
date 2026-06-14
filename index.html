@@ -1562,6 +1562,10 @@ const MTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.
 const FMTH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 // ── STATE ─────────────────────────────────────────────────────
+// DEV UNLOCK — set true เพื่อปลดล็อคทุกฟีเจอร์สำหรับทดสอบ
+const DEV_UNLOCK=true;
+function getPlan(){return DEV_UNLOCK?'pro':(S.biz?.plan||'basic');}
+
 const S={uid:null,bizId:null,biz:null,txns:[],tab:'home',flt:'all',repMonth:null,
   selPlan:'smart',cycle:'monthly',
   eMode:'new',eTxnId:null,hasVAT:false,eKind:'expense',selCat:'วัตถุดิบ',
@@ -2014,7 +2018,7 @@ function renderMore(){
     {i:'wallet',l:'นำเข้า Bank Statement',s:'KBank · SCB · BBL · KTB · Auto-import (Pro)',fn:'openBankImport()'},
     {i:'user',l:'จัดการเงินเดือน (Payroll)',s:'พนักงาน · คำนวณ SS+WHT · สลิปเงินเดือน (Pro)',fn:'openPayroll()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
-    {i:'grid',l:'เปลี่ยนกิจการ',s:(S.biz?.plan||'basic')==='basic'?`มี 1 กิจการ (Basic) · อัปเกรดเพื่อเพิ่ม`:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
+    {i:'grid',l:'เปลี่ยนกิจการ',s:!DEV_UNLOCK&&getPlan()==='basic'?`มี 1 กิจการ (Basic) · อัปเกรดเพื่อเพิ่ม`:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'doc',l:'บทความ & คู่มือ',s:'วิธีใช้งาน เคล็ดลับภาษี VAT ม.40',fn:"window.open('/blog/','_blank')"},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ธีม · การแจ้งเตือน · บัญชี',fn:'openSettings()'}
   ];
@@ -2978,8 +2982,8 @@ async function switchBiz(id){
   await loadTxns();toast('เปลี่ยนเป็น '+S.biz.name);
 }
 function addNewBiz(){
-  const curPlan=S.biz?.plan||'basic';
-  if(curPlan==='basic'&&(S.allBiz||[]).length>=1){
+  const curPlan=getPlan();
+  if(!DEV_UNLOCK&&curPlan==='basic'&&(S.allBiz||[]).length>=1){
     closeOv('s-biz-sw');
     setTimeout(()=>{
       openSubscribe();
@@ -2995,9 +2999,9 @@ function addNewBiz(){
 // ── INVITE ────────────────────────────────────────────────────
 const MEMBER_LIMIT={basic:0,smart:2,pro:5};
 async function openInvite(){
-  const curPlan=S.biz?.plan||'basic';
-  const limit=MEMBER_LIMIT[curPlan]??0;
-  if(limit===0){
+  const curPlan=getPlan();
+  const limit=DEV_UNLOCK?99:(MEMBER_LIMIT[curPlan]??0);
+  if(!DEV_UNLOCK&&limit===0){
     openSubscribe();
     toast('แพ็ก Basic ไม่รองรับการเพิ่มสมาชิก — อัปเกรดเป็น Smart เพื่อเพิ่มได้ 2 คน');
     return;
@@ -3009,7 +3013,7 @@ async function openInvite(){
       .eq('business_id',S.bizId);
     memberCount=(members||[]).length;
   }catch(e){}
-  if(memberCount>=limit){
+  if(!DEV_UNLOCK&&memberCount>=limit){
     const upgradeMsg=curPlan==='smart'
       ?`Smart รองรับสมาชิกได้ 2 คน (ครบแล้ว) — อัปเกรดเป็น Pro เพื่อเพิ่มได้ 5 คน`
       :`Pro รองรับสมาชิกได้สูงสุด 5 คน (ครบแล้ว)`;
@@ -3755,7 +3759,7 @@ function buildMonthOptions(selId,onChange){
 // ── VAT SUMMARY ──────────────────────────────────────────────
 function openVatSummary(){
   const taxId=(S.biz?.tax_id||'').trim();
-  if(!taxId){
+  if(!DEV_UNLOCK&&!taxId){
     const isInd=S.biz?.type==='individual';
     const msg=isInd
       ?'บุคคลธรรมดาที่ยังไม่ได้จดทะเบียน VAT ไม่ต้องยื่น ภ.พ.30\nหากได้จด VAT แล้ว กรุณาเพิ่มเลขประจำตัวผู้เสียภาษีในหน้าข้อมูลธุรกิจ'
@@ -4355,7 +4359,7 @@ async function saveWebhookUrl(){
 }
 
 async function fireWebhook(event,payload){
-  if((S.biz?.plan||'basic')!=='pro')return;
+  if(getPlan()!=='pro')return;
   if(!S.biz?.webhook_url)return;
   try{
     await fetch('/api/webhook',{
@@ -4386,7 +4390,7 @@ function openSettings(){
   si('set-plan-lbl',planName);
   // Show webhook section only for Pro
   const whs=$('set-webhook-section');
-  if(whs)whs.style.display=(S.biz?.plan==='pro')?'block':'none';
+  if(whs)whs.style.display=(getPlan()==='pro')?'block':'none';
   if($('set-webhook-url'))$('set-webhook-url').value=S.biz?.webhook_url||'';
   openOv('s-settings');
 }
@@ -4491,7 +4495,7 @@ let EMPLOYEES=[];
 let PR_EDIT_ID=null;
 
 function openPayroll(){
-  const plan=S.biz?.plan||'basic';
+  const plan=getPlan();
   if(plan!=='pro'){
     openSubscribe();
     toast('ฟีเจอร์ Payroll ใช้ได้เฉพาะแพ็ก Pro');
@@ -4740,7 +4744,7 @@ function printPayslip(empId){
 let BI_ROWS=[];
 
 function openBankImport(){
-  const plan=S.biz?.plan||'basic';
+  const plan=getPlan();
   if(plan!=='pro'){
     openSubscribe();
     toast('Bank Auto-Sync ใช้ได้เฉพาะแพ็ก Pro');
