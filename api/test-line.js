@@ -12,6 +12,10 @@ export default async function handler(req, res) {
 
   let botInfo = {}, botStatus = 0, pushResult = {}, pushStatus = 0;
 
+  const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms));
+
+  let botInfo = {}, botStatus = 0, pushResult = {}, pushStatus = 0;
+
   // Check token info
   try {
     const profileRes = await Promise.race([
