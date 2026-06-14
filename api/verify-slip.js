@@ -1,36 +1,27 @@
-// api/verify-slip.js — Vercel Edge Function
+// api/verify-slip.js — Node.js Serverless Function
 // Verifies a Thai bank transfer slip using Gemini Vision
 // Returns: { verified: boolean, slip: object, confidence: string, reason: string }
 
-export const config = { runtime: 'edge' };
-
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',
+  'gemini-2.5-flash-preview-05-20',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
 ];
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500 });
+    return res.status(500).json({ error: 'API key not configured' });
   }
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 });
-  }
-
-  const { imageBase64, expectedAmount, refCode } = body;
+  const { imageBase64, expectedAmount, refCode } = req.body || {};
 
   if (!imageBase64) {
-    return new Response(JSON.stringify({ error: 'imageBase64 required' }), { status: 400 });
+    return res.status(400).json({ error: 'imageBase64 required' });
   }
 
   const prompt = `คุณคือระบบตรวจสอบสลิปโอนเงินธนาคารไทย
@@ -128,10 +119,7 @@ export default async function handler(req) {
               ? 'ไม่พบรหัสอ้างอิงในสลิป'
               : 'ยืนยันสำเร็จ';
 
-      return new Response(
-        JSON.stringify({ verified, confidence, reason, slip, model }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      return res.status(200).json({ verified, confidence, reason, slip, model });
 
     } catch (e) {
       lastError = e.message;
@@ -139,13 +127,10 @@ export default async function handler(req) {
   }
 
   // All models failed — return unverified for manual review
-  return new Response(
-    JSON.stringify({
-      verified: false,
-      confidence: 'none',
-      reason: 'ไม่สามารถอ่านสลิปได้ — รอทีมงานตรวจสอบ',
-      error: lastError,
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  );
+  return res.status(200).json({
+    verified: false,
+    confidence: 'none',
+    reason: 'ไม่สามารถอ่านสลิปได้ — รอทีมงานตรวจสอบ',
+    error: lastError,
+  });
 }
