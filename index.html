@@ -1830,7 +1830,7 @@ function renderMore(){
     {i:'chart',l:'กำไร & ขาดทุน (P&L)',s:'สรุปรายได้ ค่าใช้จ่าย กำไรสุทธิ',fn:'openPNL()'},
     {i:'wallet',l:'กระทบยอดธนาคาร',s:'Bank Reconciliation · ตรวจ Statement',fn:'openBankRecon()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
-    {i:'grid',l:'เปลี่ยนกิจการ',s:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
+    {i:'grid',l:'เปลี่ยนกิจการ',s:(S.biz?.plan||'basic')==='basic'?`มี 1 กิจการ (Basic) · อัปเกรดเพื่อเพิ่ม`:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'doc',l:'บทความ & คู่มือ',s:'วิธีใช้งาน เคล็ดลับภาษี VAT ม.40',fn:"window.open('/blog/','_blank')"},
     {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
   ];
@@ -2792,6 +2792,15 @@ async function switchBiz(id){
   await loadTxns();toast('เปลี่ยนเป็น '+S.biz.name);
 }
 function addNewBiz(){
+  const curPlan=S.biz?.plan||'basic';
+  if(curPlan==='basic'&&(S.allBiz||[]).length>=1){
+    closeOv('s-biz-sw');
+    setTimeout(()=>{
+      openSubscribe();
+      toast('แพ็ก Basic ใช้ได้ 1 กิจการ — อัปเกรดเป็น Smart เพื่อเพิ่มกิจการ');
+    },300);
+    return;
+  }
   closeOv('s-biz-sw');
   S.pendProf={userId:S.uid,displayName:'',pictureUrl:''};
   showScreen('s-onboard');
@@ -3536,6 +3545,15 @@ function buildMonthOptions(selId,onChange){
 
 // ── VAT SUMMARY ──────────────────────────────────────────────
 function openVatSummary(){
+  const taxId=(S.biz?.tax_id||'').trim();
+  if(!taxId){
+    const isInd=S.biz?.type==='individual';
+    const msg=isInd
+      ?'บุคคลธรรมดาที่ยังไม่ได้จดทะเบียน VAT ไม่ต้องยื่น ภ.พ.30\nหากได้จด VAT แล้ว กรุณาเพิ่มเลขประจำตัวผู้เสียภาษีในหน้าข้อมูลธุรกิจ'
+      :'กิจการนี้ยังไม่มีเลขประจำตัวผู้เสียภาษี\nกรุณาเพิ่มเลข VAT ในหน้าข้อมูลธุรกิจก่อน';
+    alert(msg);
+    return;
+  }
   openOv('s-vat');
   buildMonthOptions('vat-month-sel','loadVatSummary');
   loadVatSummary();
