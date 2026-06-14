@@ -28,6 +28,18 @@ export default async function handler(req, res) {
     }
   }
 
+  // Check business_id not already pending (prevent duplicate submissions)
+  if (body.business_id) {
+    const pendingCheck = await fetch(
+      `${SB_URL}/rest/v1/payment_requests?business_id=eq.${body.business_id}&status=in.(pending,auto_approved)&select=id&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    const pendingData = pendingCheck.ok ? await pendingCheck.json() : [];
+    if (pendingData.length > 0) {
+      return res.status(409).json({ error: 'already_pending', message: 'มีรายการรอตรวจสอบอยู่แล้ว กรุณารอการอนุมัติก่อน' });
+    }
+  }
+
   // Save to Supabase
   const sbRes = await fetch(`${SB_URL}/rest/v1/payment_requests`, {
     method: 'POST',
