@@ -86,10 +86,24 @@ export default async function handler(req) {
       let dateOk = true;
       let dateReason = '';
       if (slip.date) {
+        // Normalize date to YYYY-MM-DD regardless of AI output format
+        const normalizeDate = (d) => {
+          if (!d) return null;
+          // Already YYYY-MM-DD
+          if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+          // DD/MM/YYYY or DD-MM-YYYY
+          const dmy = d.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+          if (dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+          // Try native parse (handles "Jun 14, 2026" etc)
+          const parsed = new Date(d);
+          if (!isNaN(parsed)) return parsed.toISOString().slice(0, 10);
+          return d;
+        };
+        const slipDateNorm = normalizeDate(slip.date);
         const thNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
         const todayTH = thNow.toISOString().slice(0, 10);
         const yesterday = new Date(thNow - 86400000).toISOString().slice(0, 10);
-        if (slip.date !== todayTH && slip.date !== yesterday) {
+        if (slipDateNorm !== todayTH && slipDateNorm !== yesterday) {
           dateOk = false;
           dateReason = `สลิปเก่าเกินไป (วันที่ในสลิป: ${slip.date})`;
         }
