@@ -3,9 +3,9 @@
 // Returns: { verified: boolean, slip: object, confidence: string, reason: string }
 
 const GEMINI_MODELS = [
-  'gemini-2.5-flash-preview-05-20',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash-latest',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash-001',
+  'gemini-1.5-flash-001',
 ];
 
 export default async function handler(req, res) {
@@ -59,7 +59,9 @@ export default async function handler(req, res) {
       );
 
       if (!geminiRes.ok) {
-        lastError = `Gemini ${model}: ${geminiRes.status}`;
+        const errBody = await geminiRes.text();
+        lastError = `Gemini ${model}: ${geminiRes.status} — ${errBody.slice(0, 200)}`;
+        console.error('[verify-slip] model failed:', lastError);
         continue;
       }
 
