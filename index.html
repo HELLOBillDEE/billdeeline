@@ -1668,11 +1668,18 @@ async function createBiz(){
     data=r.data;error=r.error;
     if(!error&&data)await sb.from('business_members').insert({business_id:data.id,user_id:S.uid,role:'owner'});
   }else{
-    const r=await sb.from('businesses').upsert({
-      line_user_id:S.uid,display_name:S.pendProf?.displayName||'',picture_url:S.pendProf?.pictureUrl||'',
-      name,tax_id:$('ob-taxid').value.trim(),type:$('ob-type').value,plan:'basic'
-    },{onConflict:'line_user_id'}).select().single();
-    data=r.data;error=r.error;
+    const apiRes=await fetch('/api/create-business',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        line_user_id:S.uid,
+        display_name:S.pendProf?.displayName||'',
+        picture_url:S.pendProf?.pictureUrl||'',
+        name,tax_id:$('ob-taxid').value.trim(),type:$('ob-type').value
+      })
+    });
+    const json=await apiRes.json().catch(()=>({}));
+    data=json.data;error=apiRes.ok?null:{message:JSON.stringify(json.error)};
   }
   $('btn-ob').disabled=false;
   if(error){alert('บันทึกไม่สำเร็จ: '+error.message);return}
