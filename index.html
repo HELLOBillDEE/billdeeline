@@ -902,6 +902,16 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       </div>
     </div>
 
+    <div class="pay-step" id="pay-s6">
+      <div style="text-align:center;padding:36px 0">
+        <div style="font-size:48px;margin-bottom:14px">❌</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;color:#dc2626">สลิปถูกปฏิเสธ</div>
+        <div id="pay-rej-reason" style="font-size:13.5px;color:var(--i2);line-height:1.65;margin-bottom:24px;background:#fee2e2;border-radius:14px;padding:14px;text-align:left"></div>
+        <button class="btn btn-p" style="margin-top:8px" onclick="$('pay-s6').className='pay-step';$('pay-s2-pp').className='pay-step on'">ลองใหม่</button>
+        <button class="btn btn-g" style="margin-top:10px" onclick="closeOv('s-pay')">ปิด</button>
+      </div>
+    </div>
+
     <div style="height:30px"></div>
   </div>
 </div>
@@ -2585,7 +2595,7 @@ function openPayment(planKey,cycle){
   PAY.ref='BD'+Date.now().toString(36).slice(-6).toUpperCase();
   PAY.method='promptpay';
   // Reset steps
-  ['pay-s1','pay-s2-pp','pay-s2-bt','pay-s3','pay-s4','pay-s5'].forEach(id=>{
+  ['pay-s1','pay-s2-pp','pay-s2-bt','pay-s3','pay-s4','pay-s5','pay-s6'].forEach(id=>{
     const el=$(id);if(el)el.className='pay-step';
   });
   $('pay-s1').className='pay-step on';
@@ -2689,13 +2699,17 @@ async function verifySlip(imgB64){
       }
     }
 
-    if(json.verified){
+    if(json.rejected){
+      // Hard reject — wrong amount or wrong recipient
+      ['pay-s1','pay-s2-pp','pay-s2-bt','pay-s3','pay-s4','pay-s5','pay-s6'].forEach(id=>{$(id)&&($(id).className='pay-step')});
+      si('pay-rej-reason',json.reason||'สลิปไม่ผ่านการตรวจสอบ');
+      $('pay-s6').className='pay-step on';
+    }else if(json.verified){
       if(S.biz)S.biz.plan=PAY.plan;
       $('pay-s4').className='pay-step on';
       si('pay-suc-ttl','ชำระเงินสำเร็จ! 🎉');
       si('pay-suc-msg',`อัปเกรดเป็น BillDEE ${PLANS[PAY.plan].name} แล้ว<br/>ขอบคุณที่ใช้บริการ 🙏`);
       renderMore();
-      // Show feature popup after short delay
       setTimeout(()=>showPlanUpgradePopup(PAY.plan),1200);
     }else{
       $('pay-s5').className='pay-step on';

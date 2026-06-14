@@ -109,18 +109,37 @@ export default async function handler(req, res) {
 
       const isSuccess = slip.is_success === true;
 
-      const verified = amountOk && isSuccess && dateOk;
+      // Recipient name check — must contain กนิษฐา or PromptPay number
+      const rawText = (slip.raw_text || '').toLowerCase();
+      const nameOk = rawText.includes('กนิษฐา') || rawText.includes('kanitha') ||
+        rawText.includes('0981020284') || rawText.includes('098-102-0284');
+
+      // Hard reject if amount wrong or name wrong (don't send to manual review)
+      if (!amountOk) {
+        return res.status(200).json({
+          verified: false, rejected: true, confidence: 'low',
+          reason: `ยอดเงินไม่ตรง (พบ ฿${slip.amount}, ต้องการ ฿${expectedAmount}) — สลิปถูกปฏิเสธ`,
+          slip, model
+        });
+      }
+      if (!nameOk) {
+        return res.status(200).json({
+          verified: false, rejected: true, confidence: 'low',
+          reason: 'ชื่อผู้รับเงินไม่ถูกต้อง — กรุณาโอนมาที่ กนิษฐา ภู่ทอง / 0981020284 เท่านั้น',
+          slip, model
+        });
+      }
+
+      const verified = amountOk && isSuccess && dateOk && nameOk;
       const confidence = verified && refOk ? 'high' : verified ? 'medium' : 'low';
 
       const reason = !isSuccess
         ? 'สลิปไม่แสดงสถานะสำเร็จ'
-        : !amountOk
-          ? `ยอดเงินไม่ตรง (พบ ${slip.amount}, ต้องการ ${expectedAmount})`
-          : !dateOk
-            ? dateReason
-            : !refOk
-              ? 'ไม่พบรหัสอ้างอิงในสลิป'
-              : 'ยืนยันสำเร็จ';
+        : !dateOk
+          ? dateReason
+          : !refOk
+            ? 'ไม่พบรหัสอ้างอิงในสลิป'
+            : 'ยืนยันสำเร็จ';
 
       return res.status(200).json({ verified, confidence, reason, slip, model });
 
