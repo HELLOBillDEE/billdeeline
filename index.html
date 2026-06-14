@@ -366,6 +366,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
               <div style="font-size:11.5px;opacity:.85;display:flex;align-items:center;gap:4px"><span id="ic-arr-up"></span>รายจ่าย</div>
               <div style="font-size:17px;font-weight:800;margin-top:3px" id="bal-exp">฿0</div>
             </div>
+            <button onclick="openShareCard()" style="border:none;background:rgba(255,255,255,.18);color:#fff;border-radius:12px;padding:8px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;flex-shrink:0;align-self:flex-end">📤 แชร์</button>
           </div>
         </div>
       </div>
@@ -1325,6 +1326,44 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- SHARE CARD -->
+<div class="bd-ov" id="s-share" style="background:rgba(0,0,0,.7);align-items:center;justify-content:center;z-index:90">
+  <div style="width:min(92vw,380px);background:var(--bg);border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4)">
+    <div style="background:var(--grad);padding:22px 22px 16px;color:#fff">
+      <div style="font-size:11px;font-weight:700;opacity:.7;letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px">สรุปยอดเดือนนี้ · <span id="sc-month"></span></div>
+      <div style="font-size:12px;opacity:.8;margin-bottom:4px" id="sc-bizname"></div>
+      <canvas id="share-canvas" style="display:none"></canvas>
+      <div style="display:flex;gap:12px;margin-bottom:4px">
+        <div style="flex:1;background:rgba(255,255,255,.12);border-radius:14px;padding:12px">
+          <div style="font-size:10.5px;opacity:.7">รายรับ</div>
+          <div style="font-size:22px;font-weight:800" id="sc-inc">฿0</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.12);border-radius:14px;padding:12px">
+          <div style="font-size:10.5px;opacity:.7">รายจ่าย</div>
+          <div style="font-size:22px;font-weight:800" id="sc-exp">฿0</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.18);border-radius:14px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;opacity:.8">กำไรสุทธิเดือนนี้</div>
+        <div style="font-size:26px;font-weight:900" id="sc-profit">฿0</div>
+      </div>
+    </div>
+    <div style="padding:16px 20px 8px">
+      <div style="font-size:12px;color:var(--i3);margin-bottom:12px;text-align:center">แชร์ให้เพื่อน · กลุ่ม · โซเชียล</div>
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <button onclick="shareCardLINE()" style="flex:1;height:48px;border:none;border-radius:16px;background:#06C755;color:#fff;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span style="font-size:20px">💬</span>แชร์ใน LINE
+        </button>
+        <button onclick="saveShareCard()" style="flex:1;height:48px;border:none;border-radius:16px;background:var(--t50);color:var(--t700);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span style="font-size:18px">💾</span>บันทึกรูป
+        </button>
+      </div>
+      <button onclick="closeOv('s-share')" style="width:100%;height:44px;border:none;border-radius:14px;background:var(--ln);color:var(--i2);font-size:14px;font-family:inherit;cursor:pointer">ปิด</button>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--i3);padding:0 16px 14px">LINE @BILLDEE · ตัวช่วยงานบัญชีของทุกคน</div>
+  </div>
+</div>
+
 <!-- SETTINGS -->
 <div class="bd-ov" id="s-settings">
   <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
@@ -1372,6 +1411,21 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         <div class="mnu-ic" style="color:#e25563">🚪</div>
         <div style="font-size:14.5px;font-weight:700;color:#e25563">ออกจากระบบ</div>
       </button>
+    </div>
+    <div class="card" style="margin-bottom:14px;padding:6px 0" id="set-webhook-section" style="display:none">
+      <div style="padding:14px 18px;font-size:12px;font-weight:700;color:var(--i3);text-transform:uppercase;letter-spacing:.5px">API Integration (Pro)</div>
+      <div style="padding:0 18px 14px">
+        <div style="font-size:13px;color:var(--i2);margin-bottom:10px;line-height:1.6">เชื่อมต่อกับ <b>Zapier / n8n / Make</b> ผ่าน Webhook — รับข้อมูลทุกครั้งที่มีรายการใหม่หรือออกบิล</div>
+        <div style="font-size:12px;font-weight:700;color:var(--i3);margin-bottom:6px">Webhook URL</div>
+        <input class="fl-in" id="set-webhook-url" placeholder="https://hooks.zapier.com/hooks/catch/..." style="font-size:13px;margin-bottom:10px">
+        <button class="btn btn-p btn-sm" onclick="saveWebhookUrl()" style="width:100%">บันทึก Webhook URL</button>
+        <div style="margin-top:10px;background:var(--t50);border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--i2);line-height:1.7">
+          <b>Events ที่ส่ง:</b><br>
+          • <code>transaction.created</code> — รายรับ/รายจ่ายใหม่<br>
+          • <code>invoice.created</code> — ออกใบแจ้งหนี้<br>
+          • <code>payment.received</code> — รับชำระเงิน
+        </div>
+      </div>
     </div>
     <div style="text-align:center;font-size:12px;color:var(--i3);padding:8px 0 30px">BillDEE v1.0 · LINE @BILLDEE</div>
   </div>
@@ -1498,7 +1552,7 @@ const PLANS={
       {t:'จัดการเงินเดือน (Payroll) + สลิป + ภ.ง.ด.1',v:true},
       {t:'นำเข้า Bank Statement (KBank/SCB/BBL/KTB)',v:true},
       {t:'สรุปภาษีรายปี ภ.ง.ด.90/91 + ส่งออก PDF',v:true},
-      {t:'API Integration (Zapier / n8n)',v:'เร็ว ๆ นี้'},
+      {t:'API Webhook (Zapier / n8n / Make)',v:true},
       {t:'Priority Support ตอบภายใน 4 ชั่วโมง',v:true}
     ]}
 };
@@ -2513,6 +2567,8 @@ async function saveEntry(){
     }else{toast('บันทึกรายการแล้ว');}
   }else{toast(S.eTxnId?'แก้ไขรายการแล้ว':'บันทึกรายการแล้ว');}
   closeOv('s-entry');await loadTxns();
+  // Fire webhook for Pro users
+  fireWebhook('transaction.created',{kind:row.kind,amount:row.amount,category:row.category,note:row.note,date:row.txn_date});
 }
 function setIncWHT(r){
   S.eWHTIncRate=r;
@@ -4175,7 +4231,141 @@ function showPlanUpgradePopup(plan){
   document.body.appendChild(el);
 }
 
+// ── VIRAL SHARE CARD ─────────────────────────────────────────
+function openShareCard(){
+  const inc=S.txns.filter(t=>t.kind==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const exp=S.txns.filter(t=>t.kind==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const profit=inc-exp;
+  const fmtN=n=>Math.abs(n).toLocaleString('th-TH',{maximumFractionDigits:0});
+  si('sc-month',nowMonth());
+  si('sc-bizname',esc(S.biz?.name||''));
+  si('sc-inc','฿'+fmtN(inc));
+  si('sc-exp','฿'+fmtN(exp));
+  si('sc-profit',(profit>=0?'+':'−')+'฿'+fmtN(profit));
+  openOv('s-share');
+}
+
+function shareCardLINE(){
+  const inc=S.txns.filter(t=>t.kind==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const exp=S.txns.filter(t=>t.kind==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const profit=inc-exp;
+  const fmtN=n=>Math.abs(n).toLocaleString('th-TH',{maximumFractionDigits:0});
+  const mo=nowMonth();
+  const bizName=S.biz?.name||'กิจการของฉัน';
+  const emoji=profit>=0?'🎉':'💪';
+  const msg=`${emoji} สรุปยอด ${mo} — ${bizName}\n`
+    +`💚 รายรับ: ฿${fmtN(inc)}\n`
+    +`❤️ รายจ่าย: ฿${fmtN(exp)}\n`
+    +`✨ กำไรสุทธิ: ${profit>=0?'+':'−'}฿${fmtN(profit)}\n\n`
+    +`จัดการบัญชีด้วย LINE @BILLDEE 📊`;
+  if(liff?.isInClient?.()&&liff?.shareTargetPicker){
+    liff.shareTargetPicker([{type:'text',text:msg}]).catch(()=>fallbackShare(msg));
+  }else{
+    fallbackShare(msg);
+  }
+}
+
+function fallbackShare(msg){
+  if(navigator.share){
+    navigator.share({title:'BillDEE สรุปยอดเดือนนี้',text:msg}).catch(()=>{});
+  }else{
+    navigator.clipboard.writeText(msg).then(()=>toast('คัดลอกข้อความแล้ว — วางใน LINE ได้เลย'));
+  }
+}
+
+function saveShareCard(){
+  const canvas=document.createElement('canvas');
+  canvas.width=800;canvas.height=500;
+  const ctx=canvas.getContext('2d');
+  const inc=S.txns.filter(t=>t.kind==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const exp=S.txns.filter(t=>t.kind==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const profit=inc-exp;
+  const fmtN=n=>Math.abs(n).toLocaleString('th-TH',{maximumFractionDigits:0});
+
+  // Background gradient
+  const grad=ctx.createLinearGradient(0,0,800,500);
+  grad.addColorStop(0,'#0e9aa7');grad.addColorStop(1,'#0b6b73');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,800,500);
+
+  // Decorative blob
+  ctx.beginPath();ctx.arc(680,80,140,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.08)';ctx.fill();
+
+  // Logo
+  ctx.font='bold 36px sans-serif';ctx.fillStyle='#fff';
+  ctx.fillText('BillDEE',50,70);
+  ctx.font='16px sans-serif';ctx.fillStyle='rgba(255,255,255,.7)';
+  ctx.fillText('ตัวช่วยงานบัญชีของทุกคน',50,95);
+
+  // Business name
+  ctx.font='bold 22px sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.fillText(S.biz?.name||'',50,145);
+
+  // Month
+  ctx.font='16px sans-serif';ctx.fillStyle='rgba(255,255,255,.7)';
+  ctx.fillText('สรุปยอด '+nowMonth(),50,175);
+
+  // Income box
+  ctx.fillStyle='rgba(255,255,255,.12)';
+  ctx.beginPath();ctx.roundRect(50,210,220,120,16);ctx.fill();
+  ctx.font='14px sans-serif';ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillText('รายรับ',65,240);
+  ctx.font='bold 32px sans-serif';ctx.fillStyle='#7fffd4';ctx.fillText('฿'+fmtN(inc),65,285);
+
+  // Expense box
+  ctx.fillStyle='rgba(255,255,255,.12)';
+  ctx.beginPath();ctx.roundRect(290,210,220,120,16);ctx.fill();
+  ctx.font='14px sans-serif';ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillText('รายจ่าย',305,240);
+  ctx.font='bold 32px sans-serif';ctx.fillStyle='#ffa3a3';ctx.fillText('฿'+fmtN(exp),305,285);
+
+  // Profit big
+  ctx.fillStyle='rgba(255,255,255,.18)';
+  ctx.beginPath();ctx.roundRect(50,350,460,110,20);ctx.fill();
+  ctx.font='16px sans-serif';ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillText('กำไรสุทธิเดือนนี้',70,385);
+  ctx.font='bold 48px sans-serif';ctx.fillStyle='#fff';
+  ctx.fillText((profit>=0?'+':'−')+'฿'+fmtN(profit),70,435);
+
+  // QR placeholder text
+  ctx.font='14px sans-serif';ctx.fillStyle='rgba(255,255,255,.6)';
+  ctx.fillText('LINE @BILLDEE · billdee.app',530,470);
+
+  // Download
+  const a=document.createElement('a');
+  a.download=`billdee-${nowMonth().replace(' ','')}.png`;
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+  toast('บันทึกรูปแล้ว — แชร์ได้เลย!');
+}
+
 // ── SETTINGS ──────────────────────────────────────────────────
+// ── WEBHOOK / API INTEGRATION (Pro) ──────────────────────────
+async function saveWebhookUrl(){
+  const url=($('set-webhook-url')?.value||'').trim();
+  if(url&&!url.startsWith('https://')){toast('URL ต้องเริ่มต้นด้วย https://');return;}
+  try{
+    await fetch('/api/update-business',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({business_id:S.bizId,webhook_url:url}),
+    });
+    if(S.biz)S.biz.webhook_url=url;
+    toast(url?'บันทึก Webhook URL แล้ว':'ลบ Webhook URL แล้ว');
+    // Test fire
+    if(url)fireWebhook('webhook.test',{message:'BillDEE connection test','from':'billdee'});
+  }catch(e){toast('บันทึกไม่สำเร็จ');}
+}
+
+async function fireWebhook(event,payload){
+  if((S.biz?.plan||'basic')!=='pro')return;
+  if(!S.biz?.webhook_url)return;
+  try{
+    await fetch('/api/webhook',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({business_id:S.bizId,event,payload}),
+    });
+  }catch(e){console.log('[webhook] fire failed:',e.message);}
+}
+
 function openSettings(){
   const theme=localStorage.getItem('bd_theme')||'auto';
   ['light','dark','auto'].forEach(t=>{
@@ -4194,6 +4384,10 @@ function openSettings(){
   si('set-uname',S.biz?.name||S.uid||'ผู้ใช้');
   const planName={basic:'Basic ฿109/เดือน',smart:'Smart ฿499/เดือน',pro:'Pro ฿1,190/เดือน'}[S.biz?.plan||'basic']||'Basic';
   si('set-plan-lbl',planName);
+  // Show webhook section only for Pro
+  const whs=$('set-webhook-section');
+  if(whs)whs.style.display=(S.biz?.plan==='pro')?'block':'none';
+  if($('set-webhook-url'))$('set-webhook-url').value=S.biz?.webhook_url||'';
   openOv('s-settings');
 }
 
