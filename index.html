@@ -2666,8 +2666,8 @@ async function verifySlip(imgB64){
     let saveJson={};
     if(saveRes){
       saveJson=await saveRes.json().catch(()=>({}));
-      console.log('[BillDEE] save-payment result:',saveJson);
-      console.log('[BillDEE] verify-slip result:',json);
+      console.log('[BillDEE] save-payment result:',JSON.stringify(saveJson));
+      console.log('[BillDEE] verify-slip result:',JSON.stringify(json));
       if(saveRes.status===409||saveJson.error==='slip_already_used'){
         $('pay-s3').className='pay-step';
         alert('❌ สลิปนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้');
