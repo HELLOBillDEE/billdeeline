@@ -16,6 +16,18 @@ export default async function handler(req, res) {
   const body = req.body;
   if (!body) return res.status(400).json({ error: 'Invalid body' });
 
+  // Check ref_code not already used (1 slip 1 use)
+  if (body.ref_code) {
+    const dupCheck = await fetch(
+      `${SB_URL}/rest/v1/payment_requests?ref_code=eq.${encodeURIComponent(body.ref_code)}&status=neq.rejected&select=id&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    const dupData = dupCheck.ok ? await dupCheck.json() : [];
+    if (dupData.length > 0) {
+      return res.status(409).json({ error: 'slip_already_used', message: 'สลิปนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้' });
+    }
+  }
+
   // Save to Supabase
   const sbRes = await fetch(`${SB_URL}/rest/v1/payment_requests`, {
     method: 'POST',
@@ -44,6 +56,25 @@ export default async function handler(req, res) {
       text: `💰 สลิปใหม่เข้า! BillDEE\n👤 ${body.biz_name||'ไม่ระบุ'}\n📦 ${planName}\n💵 ฿${body.amount}\n🔖 ref: ${body.ref_code}\n${aiStatus}\n👉 https://billdeeline-git-main-billdee-s-projects.vercel.app/admin.html`
     }]
   };
+
+  // If auto_approved, upgrade plan directly (LINE users can't update via RLS)
+  if (body.status === 'auto_approved' && body.business_id && body.plan) {
+    const expire = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString();
+    await fetch(`${SB_URL}/rest/v1/businesses?id=eq.${body.business_id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        plan: body.plan,
+        plan_started_at: new Date().toISOString(),
+        plan_expire_at: expire,
+      }),
+    }).catch(e => console.warn('plan upgrade error:', e.message));
+  }
 
   let lineError = null;
   try {

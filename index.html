@@ -2644,8 +2644,8 @@ async function verifySlip(imgB64){
     const json=await res.json();
     $('pay-s3').className='pay-step';
 
-    // Save via API (bypasses LINE user RLS issue)
-    await fetch('/api/save-payment',{
+    // Save via API (bypasses LINE user RLS issue, also upgrades plan if auto_approved)
+    const saveRes=await fetch('/api/save-payment',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -2662,15 +2662,18 @@ async function verifySlip(imgB64){
         ai_reason:json.reason||'',
         status:json.verified?'auto_approved':'pending',
       })
-    }).catch(e=>console.warn('save-payment',e));
+    });
+    if(saveRes){
+      const saveJson=await saveRes.json().catch(()=>({}));
+      if(saveRes.status===409||saveJson.error==='slip_already_used'){
+        $('pay-s3').className='pay-step';
+        alert('❌ สลิปนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้');
+        return;
+      }
+    }
 
     if(json.verified){
-      await sb.from('businesses').update({
-        plan:PAY.plan,
-        plan_started_at:new Date().toISOString(),
-        plan_expire_at:new Date(Date.now()+31*24*60*60*1000).toISOString(),
-      }).eq('id',S.bizId);
-      S.biz.plan=PAY.plan;
+      if(S.biz)S.biz.plan=PAY.plan;
       $('pay-s4').className='pay-step on';
       si('pay-suc-ttl','ชำระเงินสำเร็จ! 🎉');
       si('pay-suc-msg',`อัปเกรดเป็น BillDEE ${PLANS[PAY.plan].name} แล้ว<br/>ขอบคุณที่ใช้บริการ 🙏`);

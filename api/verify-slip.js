@@ -82,22 +82,37 @@ export default async function handler(req) {
       const amountOk = typeof slip.amount === 'number' &&
         Math.abs(slip.amount - expectedAmount) < 2; // ±2 baht tolerance
 
+      // Date check: slip must be today or yesterday (Thailand UTC+7)
+      let dateOk = true;
+      let dateReason = '';
+      if (slip.date) {
+        const thNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
+        const todayTH = thNow.toISOString().slice(0, 10);
+        const yesterday = new Date(thNow - 86400000).toISOString().slice(0, 10);
+        if (slip.date !== todayTH && slip.date !== yesterday) {
+          dateOk = false;
+          dateReason = `สลิปเก่าเกินไป (วันที่ในสลิป: ${slip.date})`;
+        }
+      }
+
       const refOk = refCode
         ? (slip.ref_no || '').includes(refCode) || (slip.raw_text || '').includes(refCode)
         : true;
 
       const isSuccess = slip.is_success === true;
 
-      const verified = amountOk && isSuccess;
+      const verified = amountOk && isSuccess && dateOk;
       const confidence = verified && refOk ? 'high' : verified ? 'medium' : 'low';
 
       const reason = !isSuccess
         ? 'สลิปไม่แสดงสถานะสำเร็จ'
         : !amountOk
           ? `ยอดเงินไม่ตรง (พบ ${slip.amount}, ต้องการ ${expectedAmount})`
-          : !refOk
-            ? 'ไม่พบรหัสอ้างอิงในสลิป'
-            : 'ยืนยันสำเร็จ';
+          : !dateOk
+            ? dateReason
+            : !refOk
+              ? 'ไม่พบรหัสอ้างอิงในสลิป'
+              : 'ยืนยันสำเร็จ';
 
       return new Response(
         JSON.stringify({ verified, confidence, reason, slip, model }),
