@@ -5,9 +5,9 @@
 export const config = { runtime: 'edge' };
 
 const GEMINI_MODELS = [
-  'gemini-2.0-flash-exp',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
   'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
 ];
 
 export default async function handler(req) {
