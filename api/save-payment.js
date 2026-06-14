@@ -58,22 +58,35 @@ export default async function handler(req, res) {
   };
 
   // If auto_approved, upgrade plan directly (LINE users can't update via RLS)
+  let planUpgraded = false;
+  let planError = null;
   if (body.status === 'auto_approved' && body.business_id && body.plan) {
     const expire = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString();
-    await fetch(`${SB_URL}/rest/v1/businesses?id=eq.${body.business_id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({
-        plan: body.plan,
-        plan_started_at: new Date().toISOString(),
-        plan_expire_at: expire,
-      }),
-    }).catch(e => console.warn('plan upgrade error:', e.message));
+    try {
+      const planRes = await fetch(`${SB_URL}/rest/v1/businesses?id=eq.${body.business_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({
+          plan: body.plan,
+          plan_started_at: new Date().toISOString(),
+          plan_expire_at: expire,
+        }),
+      });
+      if (planRes.ok) {
+        planUpgraded = true;
+      } else {
+        planError = await planRes.text();
+        console.error('plan upgrade failed:', planError);
+      }
+    } catch (e) {
+      planError = e.message;
+      console.error('plan upgrade error:', e.message);
+    }
   }
 
   let lineError = null;
@@ -92,5 +105,5 @@ export default async function handler(req, res) {
     console.error('LINE push admin error:', e.message);
   }
 
-  return res.status(200).json({ ok: true, line_error: lineError });
+  return res.status(200).json({ ok: true, plan_upgraded: planUpgraded, plan_error: planError, line_error: lineError });
 }
