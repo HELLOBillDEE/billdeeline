@@ -1,19 +1,30 @@
 // api/notify-bill.js — Push LINE message to business owner after bill saved
 
-const LINE_CHANNEL_TOKEN = process.env.LINE_CHANNEL_TOKEN ||
-  '8MnBH/AU7cLLkHQq69OzB5oPUPjttbNICw6Qy6yjqD3vajB6n4D4b7jjtuBem1i4pcIIjDImYRs2Zfz5Ow1bwpVRN09VCIDoR3/AnJnYUev9/Zf0wV2ey3QymCdfmtriOVbYxhiZoRak9u2buHS/mAdB04t89/1O/w1cDnyilFU=';
-
-const SB_URL = 'https://cfbknvjkknhfsxnrejlc.supabase.co';
+import { getConfig, requireServiceKey, rateLimit, sanitize, setSecurityHeaders } from './_lib/config.js';
 
 export default async function handler(req, res) {
+  setSecurityHeaders(res);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk';
+  const ip = req.headers['x-forwarded-for'] || 'unknown';
+  if (!rateLimit(ip, 30)) return res.status(429).json({ error: 'Too many requests' });
 
-  const { business_id, bill_type, amount, note } = req.body || {};
+  const serviceKey = requireServiceKey(res);
+  if (!serviceKey) return;
+
+  const { SB_URL, LINE_TOKEN } = getConfig();
+  if (!LINE_TOKEN) {
+    return res.status(500).json({ error: 'Server misconfigured: LINE_CHANNEL_TOKEN not set' });
+  }
+
+  const business_id = sanitize(req.body?.business_id);
+  const bill_type = sanitize(req.body?.bill_type);
+  const amount = req.body?.amount;
+  const note = sanitize(req.body?.note);
+
   if (!business_id) return res.status(400).json({ error: 'business_id required' });
 
   // Get LINE user ID from businesses table
@@ -83,14 +94,14 @@ export default async function handler(req, res) {
 
   const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}` },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_TOKEN}` },
     body: JSON.stringify(message),
   });
 
   const lineResult = await lineRes.json().catch(() => ({}));
   if (!lineRes.ok) {
     console.error('LINE push bill notify failed:', JSON.stringify(lineResult));
-    return res.status(500).json({ error: lineResult });
+    return res.status(500).json({ error: 'Failed to send LINE notification' });
   }
 
   return res.status(200).json({ ok: true });

@@ -2,15 +2,25 @@
 // Fires when: new transaction saved, new bill issued, payment received
 // User configures their webhook URL in business settings
 
-const SB_URL = 'https://cfbknvjkknhfsxnrejlc.supabase.co';
+import { getConfig, requireServiceKey, rateLimit, sanitize, setSecurityHeaders } from './_lib/config.js';
 
 export default async function handler(req, res) {
+  setSecurityHeaders(res);
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk';
+  const ip = req.headers['x-forwarded-for'] || 'unknown';
+  if (!rateLimit(ip, 30)) return res.status(429).json({ error: 'Too many requests' });
 
-  const { business_id, event, payload } = req.body || {};
+  const serviceKey = requireServiceKey(res);
+  if (!serviceKey) return;
+
+  const { SB_URL } = getConfig();
+
+  const business_id = sanitize(req.body?.business_id);
+  const event = sanitize(req.body?.event);
+  const payload = req.body?.payload;
+
   if (!business_id || !event || !payload) {
     return res.status(400).json({ error: 'business_id, event, payload required' });
   }
@@ -45,10 +55,12 @@ export default async function handler(req, res) {
     webhookStatus = whRes.status;
     if (!whRes.ok) {
       const errText = await whRes.text();
-      webhookError = `${whRes.status}: ${errText.slice(0, 200)}`;
+      console.error('webhook delivery failed:', whRes.status, errText.slice(0, 200));
+      webhookError = `Delivery failed with status ${whRes.status}`;
     }
   } catch (e) {
-    webhookError = e.message;
+    console.error('webhook delivery error:', e.message);
+    webhookError = 'Webhook delivery error';
   }
 
   // Log to webhook_logs table

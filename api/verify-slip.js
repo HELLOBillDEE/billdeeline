@@ -2,6 +2,8 @@
 // Verifies a Thai bank transfer slip using Gemini Vision
 // Returns: { verified: boolean, slip: object, confidence: string, reason: string }
 
+import { getConfig, rateLimit, sanitize, setSecurityHeaders } from './_lib/config.js';
+
 const GEMINI_MODELS = [
   'gemini-3.5-flash',
   'gemini-2.5-flash',
@@ -9,17 +11,23 @@ const GEMINI_MODELS = [
 ];
 
 export default async function handler(req, res) {
+  setSecurityHeaders(res);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const ip = req.headers['x-forwarded-for'] || 'unknown';
+  if (!rateLimit(ip, 20)) return res.status(429).json({ error: 'Too many requests' });
+
+  const { GEMINI_KEY } = getConfig();
+  if (!GEMINI_KEY) {
     return res.status(500).json({ error: 'GEMINI_API_KEY not set in Vercel env vars' });
   }
-  console.log('[verify-slip] using key prefix:', apiKey.slice(0, 8));
+  console.log('[verify-slip] using key prefix:', GEMINI_KEY.slice(0, 8));
 
   const { imageBase64, expectedAmount, refCode } = req.body || {};
+  const sanitizedRefCode = sanitize(refCode);
 
   if (!imageBase64) {
     return res.status(400).json({ error: 'imageBase64 required' });
@@ -42,7 +50,7 @@ export default async function handler(req, res) {
   for (const model of GEMINI_MODELS) {
     try {
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -103,8 +111,8 @@ export default async function handler(req, res) {
         }
       }
 
-      const refOk = refCode
-        ? (slip.ref_no || '').includes(refCode) || (slip.raw_text || '').includes(refCode)
+      const refOk = sanitizedRefCode
+        ? (slip.ref_no || '').includes(sanitizedRefCode) || (slip.raw_text || '').includes(sanitizedRefCode)
         : true;
 
       const isSuccess = slip.is_success === true;
@@ -149,11 +157,11 @@ export default async function handler(req, res) {
   }
 
   // All models failed — reject, don't send to manual review
+  console.error('[verify-slip] all models failed:', lastError);
   return res.status(200).json({
     verified: false,
     rejected: true,
     confidence: 'none',
-    reason: `ไม่สามารถอ่านสลิปได้ — กรุณาถ่ายภาพสลิปใหม่ให้ชัดขึ้น (${lastError})`,
-    error: lastError,
+    reason: `ไม่สามารถอ่านสลิปได้ — กรุณาถ่ายภาพสลิปใหม่ให้ชัดขึ้น`,
   });
 }

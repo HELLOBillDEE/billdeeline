@@ -1,25 +1,42 @@
 // api/save-payment.js — Save payment request + LINE notify admin
 
-const SB_URL = 'https://cfbknvjkknhfsxnrejlc.supabase.co';
-const LINE_CHANNEL_TOKEN = process.env.LINE_CHANNEL_TOKEN ||
-  '8MnBH/AU7cLLkHQq69OzB5oPUPjttbNICw6Qy6yjqD3vajB6n4D4b7jjtuBem1i4pcIIjDImYRs2Zfz5Ow1bwpVRN09VCIDoR3/AnJnYUev9/Zf0wV2ey3QymCdfmtriOVbYxhiZoRak9u2buHS/mAdB04t89/1O/w1cDnyilFU=';
+import { getConfig, requireServiceKey, rateLimit, sanitize, setSecurityHeaders } from './_lib/config.js';
+
 const ADMIN_LINE_ID = 'U96ea6930e32013f700ff5933eb4b8dc6';
 
 export default async function handler(req, res) {
+  setSecurityHeaders(res);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk';
+  const ip = req.headers['x-forwarded-for'] || 'unknown';
+  if (!rateLimit(ip, 20)) return res.status(429).json({ error: 'Too many requests' });
+
+  const serviceKey = requireServiceKey(res);
+  if (!serviceKey) return;
+
+  const { SB_URL, LINE_TOKEN } = getConfig();
+  if (!LINE_TOKEN) {
+    return res.status(500).json({ error: 'Server misconfigured: LINE_CHANNEL_TOKEN not set' });
+  }
 
   const body = req.body;
   if (!body) return res.status(400).json({ error: 'Invalid body' });
 
+  // Sanitize string inputs
+  const ref_code = sanitize(body.ref_code);
+  const business_id = sanitize(body.business_id);
+  const biz_name = sanitize(body.biz_name);
+  const plan = sanitize(body.plan);
+  const amount = sanitize(String(body.amount ?? ''));
+  const status = sanitize(body.status);
+
   // Check ref_code not already used (1 slip 1 use)
-  if (body.ref_code) {
+  if (ref_code) {
     const dupCheck = await fetch(
-      `${SB_URL}/rest/v1/payment_requests?ref_code=eq.${encodeURIComponent(body.ref_code)}&status=neq.rejected&select=id&limit=1`,
+      `${SB_URL}/rest/v1/payment_requests?ref_code=eq.${encodeURIComponent(ref_code)}&status=neq.rejected&select=id&limit=1`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
     );
     const dupData = dupCheck.ok ? await dupCheck.json() : [];
@@ -29,9 +46,9 @@ export default async function handler(req, res) {
   }
 
   // Check business_id not already pending (prevent duplicate submissions)
-  if (body.business_id) {
+  if (business_id) {
     const pendingCheck = await fetch(
-      `${SB_URL}/rest/v1/payment_requests?business_id=eq.${body.business_id}&status=in.(pending,auto_approved)&select=id&limit=1`,
+      `${SB_URL}/rest/v1/payment_requests?business_id=eq.${business_id}&status=in.(pending,auto_approved)&select=id&limit=1`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
     );
     const pendingData = pendingCheck.ok ? await pendingCheck.json() : [];
@@ -55,27 +72,27 @@ export default async function handler(req, res) {
   if (!sbRes.ok) {
     const err = await sbRes.text();
     console.error('save-payment error:', err);
-    return res.status(500).json({ error: err });
+    return res.status(500).json({ error: 'Failed to save payment request' });
   }
 
   // Push LINE message to admin
-  const planName = { basic: 'Basic ฿109', smart: 'Smart ฿499', pro: 'Pro ฿1,190' }[body.plan] || body.plan;
+  const planName = { basic: 'Basic ฿109', smart: 'Smart ฿499', pro: 'Pro ฿1,190' }[plan] || plan;
   const aiStatus = body.ai_verified ? '✅ AI ยืนยันอัตโนมัติ' : '⏳ รอตรวจสอบ';
   const adminMsg = {
     to: ADMIN_LINE_ID,
     messages: [{
       type: 'text',
-      text: `💰 สลิปใหม่เข้า! BillDEE\n👤 ${body.biz_name||'ไม่ระบุ'}\n📦 ${planName}\n💵 ฿${body.amount}\n🔖 ref: ${body.ref_code}\n${aiStatus}\n👉 https://billdeeline-git-main-billdee-s-projects.vercel.app/admin.html`
+      text: `💰 สลิปใหม่เข้า! BillDEE\n👤 ${biz_name || 'ไม่ระบุ'}\n📦 ${planName}\n💵 ฿${amount}\n🔖 ref: ${ref_code}\n${aiStatus}\n👉 https://billdeeline-git-main-billdee-s-projects.vercel.app/admin.html`
     }]
   };
 
   // If auto_approved, upgrade plan directly (LINE users can't update via RLS)
   let planUpgraded = false;
   let planError = null;
-  if (body.status === 'auto_approved' && body.business_id && body.plan) {
+  if (status === 'auto_approved' && business_id && plan) {
     const expire = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString();
     try {
-      const planRes = await fetch(`${SB_URL}/rest/v1/businesses?id=eq.${body.business_id}`, {
+      const planRes = await fetch(`${SB_URL}/rest/v1/businesses?id=eq.${business_id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +101,7 @@ export default async function handler(req, res) {
           Prefer: 'return=minimal',
         },
         body: JSON.stringify({
-          plan: body.plan,
+          plan,
           plan_started_at: new Date().toISOString(),
           plan_expire_at: expire,
         }),
@@ -92,12 +109,13 @@ export default async function handler(req, res) {
       if (planRes.ok) {
         planUpgraded = true;
       } else {
-        planError = await planRes.text();
-        console.error('plan upgrade failed:', planError);
+        const rawPlanError = await planRes.text();
+        console.error('plan upgrade failed:', rawPlanError);
+        planError = 'Plan upgrade failed';
       }
     } catch (e) {
-      planError = e.message;
       console.error('plan upgrade error:', e.message);
+      planError = 'Plan upgrade error';
     }
   }
 
@@ -105,16 +123,17 @@ export default async function handler(req, res) {
   try {
     const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LINE_TOKEN}` },
       body: JSON.stringify(adminMsg),
     });
     if (!lineRes.ok) {
-      lineError = await lineRes.json().catch(() => ({}));
-      console.error('LINE push admin failed:', JSON.stringify(lineError));
+      const rawLineError = await lineRes.json().catch(() => ({}));
+      console.error('LINE push admin failed:', JSON.stringify(rawLineError));
+      lineError = 'LINE notification failed';
     }
   } catch (e) {
-    lineError = e.message;
     console.error('LINE push admin error:', e.message);
+    lineError = 'LINE notification error';
   }
 
   return res.status(200).json({ ok: true, plan_upgraded: planUpgraded, plan_error: planError, line_error: lineError });

@@ -1,16 +1,24 @@
 // api/approve-payment.js — Admin approves payment, upgrades plan via service_role
 
-const SB_URL = 'https://cfbknvjkknhfsxnrejlc.supabase.co';
-const LINE_CHANNEL_TOKEN = process.env.LINE_CHANNEL_TOKEN ||
-  '8MnBH/AU7cLLkHQq69OzB5oPUPjttbNICw6Qy6yjqD3vajB6n4D4b7jjtuBem1i4pcIIjDImYRs2Zfz5Ow1bwpVRN09VCIDoR3/AnJnYUev9/Zf0wV2ey3QymCdfmtriOVbYxhiZoRak9u2buHS/mAdB04t89/1O/w1cDnyilFU=';
+import { getConfig, requireServiceKey, rateLimit, sanitize, setSecurityHeaders } from './_lib/config.js';
 
 export default async function handler(req, res) {
+  setSecurityHeaders(res);
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYmtudmpra25oZnN4bnJlamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDU1NzQsImV4cCI6MjA5NjU4MTU3NH0.BEwgucGKJzc_cdZElcozwoogz8oIbwz6lAu9wom1zHk';
+  const ip = req.headers['x-forwarded-for'] || 'unknown';
+  if (!rateLimit(ip, 20)) return res.status(429).json({ error: 'Too many requests' });
 
-  const { payment_id, business_id, plan } = req.body || {};
+  const serviceKey = requireServiceKey(res);
+  if (!serviceKey) return;
+
+  const { SB_URL } = getConfig();
+
+  const payment_id = sanitize(req.body?.payment_id);
+  const business_id = sanitize(req.body?.business_id);
+  const plan = sanitize(req.body?.plan);
+
   if (!payment_id || !business_id || !plan) {
     return res.status(400).json({ error: 'payment_id, business_id, plan required' });
   }
@@ -35,7 +43,7 @@ export default async function handler(req, res) {
   const err2 = r2.ok ? null : await r2.text();
   if (err1 || err2) {
     console.error('approve-payment error:', err1, err2);
-    return res.status(500).json({ error: err1 || err2 });
+    return res.status(500).json({ error: 'Failed to approve payment' });
   }
 
   // 3. Notify user via LINE
