@@ -1325,6 +1325,79 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- PAYROLL -->
+<div class="bd-ov" id="s-payroll">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-payroll')" id="pr-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">จัดการเงินเดือน</div><div style="font-size:12px;color:var(--i3)">Payroll · สลิปเงินเดือน · ภ.ง.ด.1</div></div>
+    <select id="pr-month-sel" class="fl-in" style="width:auto;font-size:13px;padding:6px 10px" onchange="loadPayroll()"></select>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px" id="pr-cards"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:15px;font-weight:800">พนักงาน</div>
+      <button class="btn btn-p" onclick="openAddEmployee()" style="height:36px;padding:0 14px;font-size:13px">+ เพิ่มพนักงาน</button>
+    </div>
+    <div id="pr-emp-list"></div>
+    <div style="margin-top:16px;margin-bottom:8px;font-size:15px;font-weight:800">รายการจ่ายเงินเดือนเดือนนี้</div>
+    <div id="pr-run-list"></div>
+    <button class="btn btn-p" onclick="runPayroll()" id="pr-run-btn" style="width:100%;margin:14px 0 30px">คำนวณและบันทึกเงินเดือนเดือนนี้</button>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE SHEET -->
+<div class="bd-ov" id="s-add-emp" style="background:rgba(0,0,0,.55);justify-content:flex-end;z-index:85">
+  <div style="background:var(--bg);border-radius:26px 26px 0 0;padding:22px 18px calc(env(safe-area-inset-bottom,0px)+24px)">
+    <div style="font-size:17px;font-weight:800;margin-bottom:16px" id="add-emp-ttl">เพิ่มพนักงาน</div>
+    <div class="fl-row"><div class="fl-lbl">ชื่อ-นามสกุล</div><div class="fl-w"><input class="fl-in" id="emp-name" placeholder="ชื่อพนักงาน"></div></div>
+    <div class="fl-row"><div class="fl-lbl">ตำแหน่ง</div><div class="fl-w"><input class="fl-in" id="emp-pos" placeholder="ตำแหน่งงาน"></div></div>
+    <div class="fl-row"><div class="fl-lbl">เงินเดือน (฿)</div><div class="fl-w"><input class="fl-in" id="emp-salary" type="number" placeholder="25000"></div></div>
+    <div class="fl-row"><div class="fl-lbl">เลขบัตรประชาชน</div><div class="fl-w"><input class="fl-in" id="emp-idcard" placeholder="1234567890123" maxlength="13"></div></div>
+    <div class="fl-row"><div class="fl-lbl">ประกันสังคม</div><div class="fl-w">
+      <select class="fl-in" id="emp-ss"><option value="1">หักประกันสังคม 5%</option><option value="0">ไม่หัก (รายวัน/จ้างเหมา)</option></select>
+    </div></div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-g" onclick="closeOv('s-add-emp')" style="flex:1">ยกเลิก</button>
+      <button class="btn btn-p" onclick="saveEmployee()" style="flex:2" id="save-emp-btn">บันทึกพนักงาน</button>
+    </div>
+  </div>
+</div>
+
+<!-- BANK IMPORT -->
+<div class="bd-ov" id="s-bank-import">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-bank-import')" id="bi-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">นำเข้า Statement ธนาคาร</div><div style="font-size:12px;color:var(--i3)">KBank · SCB · BBL · KTB · TTB</div></div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div class="card" style="margin:8px 0 16px;border:2px dashed var(--t300);background:var(--t50);text-align:center;padding:28px 16px;cursor:pointer" onclick="document.getElementById('bi-file').click()">
+      <div style="font-size:36px">📄</div>
+      <div style="font-weight:700;font-size:15px;margin:8px 0 4px">อัปโหลดไฟล์ Statement</div>
+      <div style="font-size:12.5px;color:var(--i2)">รองรับ CSV จาก KBank · SCB · BBL · KTB · TTB<br>หรือ Excel (.xlsx) ที่ Export จาก Internet Banking</div>
+      <input type="file" id="bi-file" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleBankFile(this)">
+    </div>
+    <div class="card" style="margin-bottom:14px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--t700)">วิธีดาวน์โหลด Statement</div>
+      <div style="font-size:12.5px;color:var(--i2);line-height:1.8">
+        <b>KBank:</b> K PLUS → บัญชี → ดาวน์โหลดรายการ (.csv)<br>
+        <b>SCB:</b> SCB Easy → บัญชีของฉัน → ดูรายการ → Export<br>
+        <b>BBL:</b> Bualuang mBanking → บัญชี → รายการเดินบัญชี<br>
+        <b>KTB:</b> Krungthai NEXT → บัญชี → รายการธุรกรรม → Export
+      </div>
+    </div>
+    <div id="bi-preview" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:800">ตรวจสอบรายการ (<span id="bi-count">0</span> รายการ)</div>
+        <label style="font-size:12.5px;color:var(--i2);display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="bi-skip-dup" checked> ข้ามรายการซ้ำ
+        </label>
+      </div>
+      <div id="bi-rows" style="font-size:13px"></div>
+      <button class="btn btn-p" onclick="importBankTxns()" style="width:100%;margin:14px 0 30px" id="bi-import-btn">นำเข้ารายการที่เลือก</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"><div class="t-ic-wrap" id="ti"></div><span id="tm"></span></div>
 
@@ -1370,6 +1443,8 @@ const PLANS={
       {t:'ผู้ใช้งานสูงสุด 5 คน พร้อมจัดการสิทธิ์',v:true},
       {t:'จัดการหลายกิจการในแอปเดียว',v:true},
       {t:'ส่งออก PDF ทุกเอกสาร (ใบกำกับฯ / ใบเสร็จ)',v:true},
+      {t:'จัดการเงินเดือน (Payroll) + สลิป + ภ.ง.ด.1',v:true},
+      {t:'นำเข้า Bank Statement (KBank/SCB/BBL/KTB)',v:true},
       {t:'สรุปภาษีรายปี ภ.ง.ด.90/91 พร้อมยื่น',v:'เร็ว ๆ นี้'},
       {t:'API Integration (Zapier / n8n)',v:'เร็ว ๆ นี้'},
       {t:'Priority Support ตอบภายใน 4 ชั่วโมง',v:true}
@@ -1829,6 +1904,8 @@ function renderMore(){
     {i:'chart',l:'ภาษีหัก ณ ที่จ่าย',s:'ภ.ง.ด.3 · ภ.ง.ด.53 · รายเดือน',fn:'openWHTReport()'},
     {i:'chart',l:'กำไร & ขาดทุน (P&L)',s:'สรุปรายได้ ค่าใช้จ่าย กำไรสุทธิ',fn:'openPNL()'},
     {i:'wallet',l:'กระทบยอดธนาคาร',s:'Bank Reconciliation · ตรวจ Statement',fn:'openBankRecon()'},
+    {i:'wallet',l:'นำเข้า Bank Statement',s:'KBank · SCB · BBL · KTB · Auto-import (Pro)',fn:'openBankImport()'},
+    {i:'user',l:'จัดการเงินเดือน (Payroll)',s:'พนักงาน · คำนวณ SS+WHT · สลิปเงินเดือน (Pro)',fn:'openPayroll()'},
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:(S.biz?.plan||'basic')==='basic'?`มี 1 กิจการ (Basic) · อัปเกรดเพื่อเพิ่ม`:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'doc',l:'บทความ & คู่มือ',s:'วิธีใช้งาน เคล็ดลับภาษี VAT ม.40',fn:"window.open('/blog/','_blank')"},
@@ -3976,6 +4053,473 @@ function showPlanUpgradePopup(plan){
     <button onclick="document.getElementById('upgrade-popup').remove();closeOv('s-pay')" style="width:100%;background:#0b6b73;color:#fff;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer">🚀 เริ่มใช้งานเลย!</button>
   </div>`;
   document.body.appendChild(el);
+}
+
+// ── PAYROLL ───────────────────────────────────────────────────
+let EMPLOYEES=[];
+let PR_EDIT_ID=null;
+
+function openPayroll(){
+  const plan=S.biz?.plan||'basic';
+  if(plan!=='pro'){
+    openSubscribe();
+    toast('ฟีเจอร์ Payroll ใช้ได้เฉพาะแพ็ก Pro');
+    return;
+  }
+  buildMonthOptions('pr-month-sel','loadPayroll');
+  loadPayroll();
+  openOv('s-payroll');
+}
+
+async function loadPayroll(){
+  if(!S.bizId)return;
+  si('pr-cards',`<div style="grid-column:1/-1;text-align:center;padding:18px;color:var(--i3)">กำลังโหลด…</div>`);
+  si('pr-emp-list','');si('pr-run-list','');
+
+  // Load employees
+  try{
+    const{data}=await sb.from('employees').select('*').eq('business_id',S.bizId).order('name');
+    EMPLOYEES=data||[];
+  }catch(e){EMPLOYEES=[];}
+
+  const mo=$('pr-month-sel')?.value||new Date().toISOString().slice(0,7);
+
+  // Load payroll runs this month
+  let runs=[];
+  try{
+    const{data}=await sb.from('payroll_runs').select('*')
+      .eq('business_id',S.bizId).eq('month',mo);
+    runs=data||[];
+  }catch(e){}
+
+  const fmt=n=>(n||0).toLocaleString('th-TH');
+  const totalSalary=EMPLOYEES.reduce((s,e)=>s+(e.salary||0),0);
+  const totalSS=EMPLOYEES.filter(e=>e.ss).reduce((s,e)=>s+Math.min((e.salary||0)*0.05,750),0);
+  const totalNet=totalSalary-totalSS;
+
+  si('pr-cards',`
+    <div class="card" style="background:var(--t50);padding:14px">
+      <div style="font-size:11.5px;color:var(--t700);font-weight:700">พนักงานทั้งหมด</div>
+      <div style="font-size:28px;font-weight:800;color:var(--t700)">${EMPLOYEES.length}</div>
+      <div style="font-size:11px;color:var(--i3)">คน</div>
+    </div>
+    <div class="card" style="background:var(--ink);padding:14px">
+      <div style="font-size:11.5px;color:rgba(255,255,255,.7);font-weight:700">เงินเดือนรวม/เดือน</div>
+      <div style="font-size:22px;font-weight:800;color:#fff">฿${fmt(totalSalary)}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5)">หักSSแล้ว ฿${fmt(Math.round(totalNet))}</div>
+    </div>
+  `);
+
+  // Employee list
+  if(!EMPLOYEES.length){
+    si('pr-emp-list',`<div class="card" style="text-align:center;padding:28px;color:var(--i3)">ยังไม่มีพนักงาน<br><span style="font-size:12px">กด "+ เพิ่มพนักงาน" เพื่อเริ่มต้น</span></div>`);
+  }else{
+    si('pr-emp-list',EMPLOYEES.map(e=>{
+      const ss=e.ss?Math.min((e.salary||0)*0.05,750):0;
+      const net=(e.salary||0)-ss;
+      return`<div class="card" style="margin-bottom:10px;padding:14px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-weight:700;font-size:15px">${esc(e.name)}</div>
+            <div style="font-size:12px;color:var(--i2)">${esc(e.position||'พนักงาน')} ${e.ss?'· ประกันสังคม 5%':''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800;font-size:16px;color:var(--t700)">฿${fmt(e.salary||0)}</div>
+            <div style="font-size:11px;color:var(--i3)">รับจริง ฿${fmt(Math.round(net))}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-g" onclick="editEmployee('${e.id}')" style="flex:1;height:34px;font-size:13px">แก้ไข</button>
+          <button class="btn" onclick="printPayslip('${e.id}')" style="flex:1;height:34px;font-size:13px;background:var(--t50);color:var(--t700);border:none;border-radius:12px;font-family:inherit;cursor:pointer">🖨 สลิป</button>
+          <button class="btn" onclick="deleteEmployee('${e.id}')" style="height:34px;padding:0 12px;font-size:13px;background:#fef2f2;color:#e25563;border:none;border-radius:12px;font-family:inherit;cursor:pointer">ลบ</button>
+        </div>
+      </div>`;
+    }).join(''));
+  }
+
+  // Payroll runs
+  if(runs.length){
+    si('pr-run-list',`<div class="card" style="padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;color:var(--t700);margin-bottom:8px">✅ บันทึกแล้วเดือน ${mo}</div>
+      ${runs.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--ln);font-size:13.5px">
+        <span>${esc(r.emp_name)}</span>
+        <span style="font-weight:700">฿${fmt(r.net_pay)}</span>
+      </div>`).join('')}
+    </div>`);
+    $('pr-run-btn').textContent='บันทึกแล้ว (เดือนนี้)';
+    $('pr-run-btn').disabled=true;
+  }else{
+    $('pr-run-btn').textContent='คำนวณและบันทึกเงินเดือนเดือนนี้';
+    $('pr-run-btn').disabled=false;
+  }
+}
+
+function openAddEmployee(){
+  PR_EDIT_ID=null;
+  si('add-emp-ttl','เพิ่มพนักงาน');
+  si('save-emp-btn','บันทึกพนักงาน');
+  ['emp-name','emp-pos','emp-idcard'].forEach(id=>{if($(id))$(id).value='';});
+  if($('emp-salary'))$('emp-salary').value='';
+  if($('emp-ss'))$('emp-ss').value='1';
+  openOv('s-add-emp');
+}
+
+function editEmployee(id){
+  const e=EMPLOYEES.find(x=>x.id===id);
+  if(!e)return;
+  PR_EDIT_ID=id;
+  si('add-emp-ttl','แก้ไขพนักงาน');
+  si('save-emp-btn','บันทึกการแก้ไข');
+  if($('emp-name'))$('emp-name').value=e.name||'';
+  if($('emp-pos'))$('emp-pos').value=e.position||'';
+  if($('emp-salary'))$('emp-salary').value=e.salary||'';
+  if($('emp-idcard'))$('emp-idcard').value=e.id_card||'';
+  if($('emp-ss'))$('emp-ss').value=e.ss?'1':'0';
+  openOv('s-add-emp');
+}
+
+async function saveEmployee(){
+  const name=($('emp-name')?.value||'').trim();
+  const position=($('emp-pos')?.value||'').trim();
+  const salary=parseFloat($('emp-salary')?.value||0);
+  const id_card=($('emp-idcard')?.value||'').trim();
+  const ss=$('emp-ss')?.value==='1';
+  if(!name){toast('กรุณาระบุชื่อพนักงาน');return;}
+  if(!salary||salary<=0){toast('กรุณาระบุเงินเดือน');return;}
+
+  const row={business_id:S.bizId,name,position,salary,id_card,ss};
+  try{
+    if(PR_EDIT_ID){
+      await sb.from('employees').update(row).eq('id',PR_EDIT_ID);
+    }else{
+      await sb.from('employees').insert(row);
+    }
+    closeOv('s-add-emp');
+    toast(PR_EDIT_ID?'แก้ไขข้อมูลพนักงานแล้ว':'เพิ่มพนักงานแล้ว');
+    await loadPayroll();
+  }catch(e){toast('เกิดข้อผิดพลาด: '+e.message);}
+}
+
+async function deleteEmployee(id){
+  if(!confirm('ลบพนักงานนี้?'))return;
+  try{
+    await sb.from('employees').delete().eq('id',id);
+    toast('ลบพนักงานแล้ว');
+    await loadPayroll();
+  }catch(e){toast('เกิดข้อผิดพลาด');}
+}
+
+async function runPayroll(){
+  if(!EMPLOYEES.length){toast('ยังไม่มีพนักงาน');return;}
+  const mo=$('pr-month-sel')?.value||new Date().toISOString().slice(0,7);
+  const fmt=n=>(n||0).toLocaleString('th-TH');
+  const runs=EMPLOYEES.map(e=>{
+    const gross=e.salary||0;
+    const ss=e.ss?Math.min(gross*0.05,750):0;
+    // WHT for salary: ถ้าเงินเดือน >150k/ปี → อยู่ใน progressive brackets
+    const annual=gross*12;
+    let wht=0;
+    if(annual>150000){
+      const taxable=annual-150000-Math.min(annual*0.5,100000)-60000;
+      if(taxable>0){
+        let tax=0;
+        if(taxable<=300000)tax=taxable*0.05;
+        else if(taxable<=500000)tax=15000+(taxable-300000)*0.1;
+        else tax=35000+(taxable-500000)*0.15;
+        wht=Math.round(tax/12);
+      }
+    }
+    const net=gross-ss-wht;
+    return{business_id:S.bizId,month:mo,emp_id:e.id,emp_name:e.name,
+      gross_pay:gross,ss_employee:Math.round(ss),wht,net_pay:Math.round(net)};
+  });
+
+  try{
+    await sb.from('payroll_runs').delete().eq('business_id',S.bizId).eq('month',mo);
+    await sb.from('payroll_runs').insert(runs);
+    // Also record as expense transactions
+    for(const r of runs){
+      await sb.from('transactions').insert({
+        business_id:S.bizId,kind:'expense',category:'เงินเดือน',
+        amount:r.gross_pay,note:`เงินเดือน ${r.emp_name} เดือน ${mo}`,
+        txn_date:mo+'-25',source:'payroll',
+      });
+    }
+    toast(`บันทึกเงินเดือน ${runs.length} คน เรียบร้อย`);
+    await loadPayroll();
+    await loadTxns();
+  }catch(e){toast('บันทึกไม่สำเร็จ: '+e.message);}
+}
+
+function printPayslip(empId){
+  const e=EMPLOYEES.find(x=>x.id===empId);
+  if(!e)return;
+  const mo=$('pr-month-sel')?.value||new Date().toISOString().slice(0,7);
+  const [yr,m]=mo.split('-');
+  const thYr=parseInt(yr)+543;
+  const mName=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][parseInt(m)-1];
+  const gross=e.salary||0;
+  const ss=e.ss?Math.min(gross*0.05,750):0;
+  const annual=gross*12;
+  let wht=0;
+  if(annual>150000){
+    const taxable=annual-150000-Math.min(annual*0.5,100000)-60000;
+    if(taxable>0){
+      let tax=0;
+      if(taxable<=300000)tax=taxable*0.05;
+      else if(taxable<=500000)tax=15000+(taxable-300000)*0.1;
+      else tax=35000+(taxable-500000)*0.15;
+      wht=Math.round(tax/12);
+    }
+  }
+  const net=gross-ss-wht;
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2});
+  const biz=S.biz||{};
+
+  const html=`<div class="doc-pdf-wrap" style="max-width:600px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:20pt;font-weight:900;color:#0e9aa7">Bill<span style="color:#0b6b73">DEE</span></div>
+      <div style="font-size:13pt;font-weight:800;margin-top:4px">สลิปเงินเดือน</div>
+      <div style="color:#666;font-size:9.5pt">${mName} ${thYr} · ${esc(biz.name||'')}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:14px">
+      <tr style="background:#f4f9fa"><td style="padding:8px 12px;font-weight:700">พนักงาน</td><td style="padding:8px 12px">${esc(e.name)}</td></tr>
+      <tr><td style="padding:8px 12px;font-weight:700">ตำแหน่ง</td><td style="padding:8px 12px">${esc(e.position||'—')}</td></tr>
+      ${e.id_card?`<tr style="background:#f4f9fa"><td style="padding:8px 12px;font-weight:700">เลขบัตรประชาชน</td><td style="padding:8px 12px">${esc(e.id_card)}</td></tr>`:''}
+    </table>
+    <table style="width:100%;border-collapse:collapse;font-size:10pt">
+      <thead><tr style="background:#0e9aa7;color:#fff"><th style="padding:8px 12px;text-align:left">รายการ</th><th style="padding:8px 12px;text-align:right">จำนวนเงิน (฿)</th></tr></thead>
+      <tbody>
+        <tr style="background:#f8fcfd"><td style="padding:8px 12px">เงินเดือน</td><td style="padding:8px 12px;text-align:right;color:#16a06f;font-weight:600">${fmt(gross)}</td></tr>
+        ${ss>0?`<tr><td style="padding:8px 12px;color:#e25563">หักประกันสังคม 5% (สูงสุด ฿750)</td><td style="padding:8px 12px;text-align:right;color:#e25563">−${fmt(ss)}</td></tr>`:''}
+        ${wht>0?`<tr style="background:#fffbf0"><td style="padding:8px 12px;color:#92400e">หักภาษี ณ ที่จ่าย (ประมาณการ)</td><td style="padding:8px 12px;text-align:right;color:#92400e">−${fmt(wht)}</td></tr>`:''}
+      </tbody>
+      <tfoot><tr style="background:#0e9aa7;color:#fff">
+        <td style="padding:10px 12px;font-weight:800;font-size:12pt">ยอดที่ได้รับสุทธิ</td>
+        <td style="padding:10px 12px;text-align:right;font-weight:800;font-size:12pt">฿${fmt(net)}</td>
+      </tr></tfoot>
+    </table>
+    <div style="margin-top:16px;text-align:center;font-size:8.5pt;color:#888;border-top:1px solid #e4eef0;padding-top:10px">เอกสารนี้ออกโดย LINE @BILLDEE ตัวช่วยงานบัญชีของทุกคน</div>
+  </div>`;
+
+  si('pdf-content',html);sh('pdf-wrap');
+}
+
+// ── BANK IMPORT ───────────────────────────────────────────────
+let BI_ROWS=[];
+
+function openBankImport(){
+  const plan=S.biz?.plan||'basic';
+  if(plan!=='pro'){
+    openSubscribe();
+    toast('Bank Auto-Sync ใช้ได้เฉพาะแพ็ก Pro');
+    return;
+  }
+  if($('bi-file'))$('bi-file').value='';
+  if($('bi-preview'))$('bi-preview').style.display='none';
+  BI_ROWS=[];
+  openOv('s-bank-import');
+}
+
+async function handleBankFile(input){
+  const file=input.files?.[0];
+  if(!file){return;}
+  const text=await file.text();
+  const name=file.name.toLowerCase();
+
+  // Detect bank and parse
+  let rows=[];
+  if(name.includes('kbank')||text.includes('KASIKORN')||text.includes('กสิกร')){
+    rows=parseKBankCSV(text);
+  }else if(name.includes('scb')||text.includes('SIAM COMMERCIAL')||text.includes('ไทยพาณิชย์')){
+    rows=parseSCBCSV(text);
+  }else if(name.includes('bbl')||text.includes('BANGKOK BANK')||text.includes('กรุงเทพ')){
+    rows=parseBBLCSV(text);
+  }else if(name.includes('ktb')||text.includes('KRUNGTHAI')||text.includes('กรุงไทย')){
+    rows=parseKTBCSV(text);
+  }else{
+    rows=parseGenericCSV(text);
+  }
+
+  if(!rows.length){toast('ไม่พบรายการในไฟล์ หรือรูปแบบไม่รองรับ');return;}
+
+  BI_ROWS=rows;
+  renderBankPreview();
+}
+
+function parseKBankCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+    // KBank: Date, Time, Code, Channel, Debit, Credit, Balance, Note
+    const dateStr=cols[0];
+    if(!dateStr||!/\d{2}\/\d{2}\/\d{4}/.test(dateStr))continue;
+    const [d,m,y]=dateStr.split('/');
+    const thYr=parseInt(y);const ceYr=thYr>2500?thYr-543:thYr;
+    const date=`${ceYr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    const debit=parseFloat((cols[4]||'').replace(/,/g,''))||0;
+    const credit=parseFloat((cols[5]||'').replace(/,/g,''))||0;
+    const note=cols[7]||cols[3]||'นำเข้าจาก KBank';
+    if(debit>0)rows.push({date,amount:debit,kind:'expense',note,_sel:true});
+    if(credit>0)rows.push({date,amount:credit,kind:'income',note,_sel:true});
+  }
+  return rows;
+}
+
+function parseSCBCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+    const dateStr=cols[0];
+    if(!dateStr||!/\d{2}\/\d{2}\/\d{4}/.test(dateStr))continue;
+    const [d,m,y]=dateStr.split('/');
+    const thYr=parseInt(y);const ceYr=thYr>2500?thYr-543:thYr;
+    const date=`${ceYr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    const withdrawal=parseFloat((cols[2]||'').replace(/,/g,''))||0;
+    const deposit=parseFloat((cols[3]||'').replace(/,/g,''))||0;
+    const note=cols[5]||'นำเข้าจาก SCB';
+    if(withdrawal>0)rows.push({date,amount:withdrawal,kind:'expense',note,_sel:true});
+    if(deposit>0)rows.push({date,amount:deposit,kind:'income',note,_sel:true});
+  }
+  return rows;
+}
+
+function parseBBLCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+    const dateStr=cols[0];
+    if(!dateStr||!/\d{2}\/\d{2}\/\d{4}/.test(dateStr))continue;
+    const [d,m,y]=dateStr.split('/');
+    const thYr=parseInt(y);const ceYr=thYr>2500?thYr-543:thYr;
+    const date=`${ceYr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    const debit=parseFloat((cols[3]||'').replace(/,/g,''))||0;
+    const credit=parseFloat((cols[4]||'').replace(/,/g,''))||0;
+    const note=cols[2]||'นำเข้าจาก BBL';
+    if(debit>0)rows.push({date,amount:debit,kind:'expense',note,_sel:true});
+    if(credit>0)rows.push({date,amount:credit,kind:'income',note,_sel:true});
+  }
+  return rows;
+}
+
+function parseKTBCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+    const dateStr=cols[0];
+    if(!dateStr||!/\d{2}\/\d{2}\/\d{4}/.test(dateStr))continue;
+    const [d,m,y]=dateStr.split('/');
+    const thYr=parseInt(y);const ceYr=thYr>2500?thYr-543:thYr;
+    const date=`${ceYr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    const debit=parseFloat((cols[2]||'').replace(/,/g,''))||0;
+    const credit=parseFloat((cols[3]||'').replace(/,/g,''))||0;
+    const note=cols[5]||cols[1]||'นำเข้าจาก KTB';
+    if(debit>0)rows.push({date,amount:debit,kind:'expense',note,_sel:true});
+    if(credit>0)rows.push({date,amount:credit,kind:'income',note,_sel:true});
+  }
+  return rows;
+}
+
+function parseGenericCSV(text){
+  // Generic: try to find date, debit/credit columns
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+    // Look for a date-like column
+    const dateCol=cols.find(c=>/\d{2}[\/\-]\d{2}[\/\-]\d{2,4}/.test(c));
+    if(!dateCol)continue;
+    const dateM=dateCol.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{2,4})/);
+    if(!dateM)continue;
+    const [,d,m,y]=dateM;
+    const thYr=parseInt(y<100?'25'+y:y);const ceYr=thYr>2500?thYr-543:thYr;
+    const date=`${ceYr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    // Find numeric columns
+    const nums=cols.map(c=>parseFloat(c.replace(/,/g,''))).filter(n=>!isNaN(n)&&n>0);
+    if(!nums.length)continue;
+    const note=cols.find(c=>c.length>5&&isNaN(parseFloat(c.replace(/,/g,''))))||'นำเข้าจาก Statement';
+    rows.push({date,amount:nums[0],kind:'income',note,_sel:true});
+  }
+  return rows;
+}
+
+function renderBankPreview(){
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2});
+  si('bi-count',BI_ROWS.length);
+  si('bi-rows',`
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="background:var(--t700);color:#fff">
+        <th style="padding:7px 8px;text-align:center;width:32px"><input type="checkbox" checked onchange="toggleAllBankRows(this)"></th>
+        <th style="padding:7px 8px;text-align:left">วันที่</th>
+        <th style="padding:7px 8px;text-align:left">รายการ</th>
+        <th style="padding:7px 8px;text-align:center">ประเภท</th>
+        <th style="padding:7px 8px;text-align:right">จำนวน (฿)</th>
+      </tr></thead>
+      <tbody>${BI_ROWS.map((r,i)=>`<tr style="${i%2?'background:var(--t50)':''}">
+        <td style="padding:6px 8px;text-align:center"><input type="checkbox" ${r._sel?'checked':''} onchange="BI_ROWS[${i}]._sel=this.checked"></td>
+        <td style="padding:6px 8px">${r.date}</td>
+        <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.note)}</td>
+        <td style="padding:6px 8px;text-align:center">
+          <select style="font-size:11px;border:1px solid var(--ln);border-radius:6px;padding:2px 4px;font-family:inherit" onchange="BI_ROWS[${i}].kind=this.value">
+            <option value="income" ${r.kind==='income'?'selected':''}>รายรับ</option>
+            <option value="expense" ${r.kind==='expense'?'selected':''}>รายจ่าย</option>
+          </select>
+        </td>
+        <td style="padding:6px 8px;text-align:right;font-weight:600;color:${r.kind==='income'?'#16a06f':'#e25563'}">
+          ${fmt(r.amount)}
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  `);
+  $('bi-preview').style.display='block';
+}
+
+function toggleAllBankRows(cb){
+  BI_ROWS.forEach(r=>r._sel=cb.checked);
+  renderBankPreview();
+}
+
+async function importBankTxns(){
+  const sel=BI_ROWS.filter(r=>r._sel);
+  if(!sel.length){toast('กรุณาเลือกรายการอย่างน้อย 1 รายการ');return;}
+  const skipDup=$('bi-skip-dup')?.checked!==false;
+
+  // Load existing txn dates to check duplicates
+  let existKeys=new Set();
+  if(skipDup){
+    try{
+      const minDate=sel.map(r=>r.date).sort()[0];
+      const{data}=await sb.from('transactions').select('txn_date,amount,kind')
+        .eq('business_id',S.bizId).gte('txn_date',minDate);
+      (data||[]).forEach(t=>existKeys.add(`${t.txn_date}|${t.amount}|${t.kind}`));
+    }catch(e){}
+  }
+
+  const toInsert=sel
+    .filter(r=>!skipDup||!existKeys.has(`${r.date}|${r.amount}|${r.kind}`))
+    .map(r=>({
+      business_id:S.bizId,
+      kind:r.kind,
+      amount:r.amount,
+      note:r.note,
+      txn_date:r.date,
+      source:'bank_import',
+      category:r.kind==='income'?'รายได้':'อื่น ๆ',
+    }));
+
+  if(!toInsert.length){toast('ทุกรายการซ้ำกับที่มีอยู่แล้ว');return;}
+
+  try{
+    await sb.from('transactions').insert(toInsert);
+    toast(`นำเข้าสำเร็จ ${toInsert.length} รายการ`);
+    closeOv('s-bank-import');
+    await loadTxns();
+  }catch(e){toast('นำเข้าไม่สำเร็จ: '+e.message);}
 }
 
 // ── BOOT ──────────────────────────────────────────────────────
