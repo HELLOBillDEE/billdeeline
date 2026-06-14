@@ -15,8 +15,9 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+    return res.status(500).json({ error: 'GEMINI_API_KEY not set in Vercel env vars' });
   }
+  console.log('[verify-slip] using key prefix:', apiKey.slice(0, 8));
 
   const { imageBase64, expectedAmount, refCode } = req.body || {};
 
@@ -132,5 +133,7 @@ export default async function handler(req, res) {
     confidence: 'none',
     reason: 'ไม่สามารถอ่านสลิปได้ — รอทีมงานตรวจสอบ',
     error: lastError,
+    key_set: !!apiKey,
+    key_prefix: apiKey ? apiKey.slice(0, 8) : 'MISSING',
   });
 }
