@@ -1325,6 +1325,58 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
 </div>
 
+<!-- SETTINGS -->
+<div class="bd-ov" id="s-settings">
+  <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
+    <button class="btn-back" onclick="closeOv('s-settings')" id="set-bk"></button>
+    <div style="flex:1"><div style="font-size:17.5px;font-weight:800">ตั้งค่าทั่วไป</div></div>
+  </div>
+  <div class="scroll" style="flex:1;padding:0 18px">
+    <div class="card" style="margin:8px 0 14px;padding:6px 0">
+      <div style="padding:14px 18px;font-size:12px;font-weight:700;color:var(--i3);text-transform:uppercase;letter-spacing:.5px">ธีม</div>
+      <button class="mnu-btn" onclick="setTheme('light')" id="set-light">
+        <div class="mnu-ic">☀️</div>
+        <div style="flex:1"><div style="font-size:14.5px;font-weight:700">สว่าง (Light)</div></div>
+        <div id="set-light-chk" style="color:var(--t700);font-size:18px"></div>
+      </button>
+      <button class="mnu-btn" onclick="setTheme('dark')" style="border-top:1px solid var(--ln)" id="set-dark">
+        <div class="mnu-ic">🌙</div>
+        <div style="flex:1"><div style="font-size:14.5px;font-weight:700">มืด (Dark)</div></div>
+        <div id="set-dark-chk" style="color:var(--t700);font-size:18px"></div>
+      </button>
+      <button class="mnu-btn" onclick="setTheme('auto')" style="border-top:1px solid var(--ln)" id="set-auto">
+        <div class="mnu-ic">🔄</div>
+        <div style="flex:1"><div style="font-size:14.5px;font-weight:700">ตามระบบ (Auto)</div></div>
+        <div id="set-auto-chk" style="color:var(--t700);font-size:18px"></div>
+      </button>
+    </div>
+    <div class="card" style="margin-bottom:14px;padding:6px 0">
+      <div style="padding:14px 18px;font-size:12px;font-weight:700;color:var(--i3);text-transform:uppercase;letter-spacing:.5px">การแจ้งเตือน</div>
+      <div class="mnu-btn" style="cursor:default">
+        <div class="mnu-ic">🔔</div>
+        <div style="flex:1"><div style="font-size:14.5px;font-weight:700">แจ้งเตือนผ่าน LINE</div><div style="font-size:12px;color:var(--i3)">เมื่อบันทึกบิลสำเร็จ</div></div>
+        <label style="position:relative;display:inline-block;width:44px;height:26px;cursor:pointer">
+          <input type="checkbox" id="set-notif" style="opacity:0;width:0;height:0" onchange="saveNotifSetting(this.checked)">
+          <span id="set-notif-track" style="position:absolute;inset:0;background:#ccc;border-radius:26px;transition:.3s"></span>
+          <span id="set-notif-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s"></span>
+        </label>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px;padding:6px 0">
+      <div style="padding:14px 18px;font-size:12px;font-weight:700;color:var(--i3);text-transform:uppercase;letter-spacing:.5px">บัญชี</div>
+      <div class="mnu-btn" style="cursor:default">
+        <div class="mnu-ic">👤</div>
+        <div style="flex:1"><div style="font-size:14.5px;font-weight:700" id="set-uname">—</div><div style="font-size:12px;color:var(--i3)" id="set-plan-lbl">—</div></div>
+      </div>
+      <button class="mnu-btn" style="border-top:1px solid var(--ln);color:#e25563" onclick="confirmLogout()">
+        <div class="mnu-ic" style="color:#e25563">🚪</div>
+        <div style="font-size:14.5px;font-weight:700;color:#e25563">ออกจากระบบ</div>
+      </button>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--i3);padding:8px 0 30px">BillDEE v1.0 · LINE @BILLDEE</div>
+  </div>
+</div>
+
 <!-- PAYROLL -->
 <div class="bd-ov" id="s-payroll">
   <div class="topbar" style="padding-top:max(10px,env(safe-area-inset-top,10px))">
@@ -1445,7 +1497,7 @@ const PLANS={
       {t:'ส่งออก PDF ทุกเอกสาร (ใบกำกับฯ / ใบเสร็จ)',v:true},
       {t:'จัดการเงินเดือน (Payroll) + สลิป + ภ.ง.ด.1',v:true},
       {t:'นำเข้า Bank Statement (KBank/SCB/BBL/KTB)',v:true},
-      {t:'สรุปภาษีรายปี ภ.ง.ด.90/91 พร้อมยื่น',v:'เร็ว ๆ นี้'},
+      {t:'สรุปภาษีรายปี ภ.ง.ด.90/91 + ส่งออก PDF',v:true},
       {t:'API Integration (Zapier / n8n)',v:'เร็ว ๆ นี้'},
       {t:'Priority Support ตอบภายใน 4 ชั่วโมง',v:true}
     ]}
@@ -1676,6 +1728,7 @@ function paintIcons(){
 
 async function init(){
   initSB();paintIcons();
+  applyTheme(localStorage.getItem('bd_theme')||'auto');
   if(sessionStorage.getItem('bd_logout')){sessionStorage.removeItem('bd_logout');showScreen('s-login');return;}
   // 1) ตรวจ Supabase Auth session (ผู้ใช้ email)
   try{
@@ -1909,7 +1962,7 @@ function renderMore(){
     {i:'user',l:'เชิญสมาชิก / เข้าร่วมธุรกิจ',s:'โค้ดเชิญ + LINE Notify',fn:'openInvite()'},
     {i:'grid',l:'เปลี่ยนกิจการ',s:(S.biz?.plan||'basic')==='basic'?`มี 1 กิจการ (Basic) · อัปเกรดเพื่อเพิ่ม`:`มี ${S.allBiz?.length||1} กิจการ · เพิ่มหรือเปลี่ยนได้`,fn:'openBizSwitcher()'},
     {i:'doc',l:'บทความ & คู่มือ',s:'วิธีใช้งาน เคล็ดลับภาษี VAT ม.40',fn:"window.open('/blog/','_blank')"},
-    {i:'settings',l:'ตั้งค่าทั่วไป',s:'ภาษา การแจ้งเตือน',fn:"toast('กำลังพัฒนา')"}
+    {i:'settings',l:'ตั้งค่าทั่วไป',s:'ธีม · การแจ้งเตือน · บัญชี',fn:'openSettings()'}
   ];
   si('more-menu',`<div style="padding:4px 0">${menu.map((m,i)=>`<button class="mnu-btn" onclick="${m.fn}" style="${i<menu.length-1?'border-bottom:1px solid var(--ln)':''}">
     <div class="mnu-ic">${ic(m.i,20,'var(--t700)')}</div>
@@ -2057,7 +2110,7 @@ function renderPIT(){
       <div style="color:#fff;font-size:32px;font-weight:800">฿${fmt2(Math.abs(diff))}</div>
       <div style="color:rgba(255,255,255,.7);font-size:12px;margin-top:4px">ปีภาษี ${S.pitYear||'2567'}</div>
     </div>
-    <button class="btn btn-p" onclick="toast('กำลังพัฒนา')" style="width:100%;margin-bottom:8px;font-size:14px">บันทึก / ส่งออก PDF</button>
+    <button class="btn btn-p" onclick="exportPITPDF()" style="width:100%;margin-bottom:8px;font-size:14px">🖨 ส่งออก PDF / พิมพ์</button>
   `);
 }
 function addIncomeRow(type){S.pitIncomes.push({type:type||'m40_1',amount:'',wht:''});renderPIT();}
@@ -3882,8 +3935,75 @@ async function loadWHTReport(){
 function exportWHTForm(formNo){
   const mo=$('wht-month-sel')?.value||new Date().toISOString().slice(0,7);
   const parts=mo.split('-');
-  const displayMo=`${parts[1]}/${parseInt(parts[0])+543}`;
-  toast(`ภ.ง.ด.${formNo} เดือน ${displayMo} — กำลังพัฒนาระบบ Export PDF`);
+  const displayMo=`${parts[1].padStart(2,'0')}/${parseInt(parts[0])+543}`;
+  const biz=S.biz||{};
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2});
+
+  // Pull current WHT list from DOM data (already loaded)
+  // Re-query from Supabase for print accuracy
+  sb.from('transactions').select('*')
+    .eq('business_id',S.bizId)
+    .gte('txn_date',mo+'-01').lte('txn_date',mo+'-31')
+    .gt('wht_amount',0)
+    .then(({data})=>{
+      const txns=data||[];
+      const totalWHT=txns.reduce((s,t)=>s+(t.wht_amount||0),0);
+      const totalBase=txns.reduce((s,t)=>s+(t.amount||0),0);
+      const isPnd3=formNo==='3';
+      const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+      <title>ภ.ง.ด.${formNo} เดือน ${displayMo}</title>
+      <style>
+        body{font-family:'Sarabun',sans-serif;font-size:11pt;margin:20px;color:#000}
+        h2{text-align:center;font-size:14pt;margin-bottom:4px}
+        .meta{margin-bottom:4px;font-size:10.5pt}
+        table{width:100%;border-collapse:collapse;margin-top:10px;font-size:10pt}
+        th,td{border:1px solid #000;padding:4px 6px;vertical-align:middle}
+        th{background:#f0f0f0;text-align:center;font-size:9.5pt}
+        tfoot td{font-weight:800}
+        @media print{button{display:none}}
+        .footer{margin-top:20px;font-size:9pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:8px}
+      </style></head><body>
+      <button onclick="window.print()" style="float:right;padding:7px 16px;font-size:11pt;cursor:pointer">🖨 พิมพ์</button>
+      <h2>หนังสือรับรองการหักภาษี ณ ที่จ่าย (ภ.ง.ด.${formNo})</h2>
+      <div class="meta">เดือนภาษี <strong>${displayMo}</strong></div>
+      <div class="meta">ผู้จ่ายเงิน: <strong>${esc(biz.name||'')}</strong> &nbsp; เลขภาษี: <strong>${esc(biz.tax_id||'—')}</strong></div>
+      <div class="meta">ที่อยู่: ${esc(biz.address||'—')}</div>
+      <table>
+        <thead><tr>
+          <th style="width:40px">ลำดับ</th>
+          <th>ชื่อผู้รับเงิน</th>
+          <th style="width:100px">เลขประจำตัวผู้เสียภาษี</th>
+          <th style="width:80px">วันที่จ่าย</th>
+          <th style="width:70px">ประเภทเงินได้</th>
+          <th style="width:80px">จำนวนเงิน (฿)</th>
+          <th style="width:70px">อัตรา WHT</th>
+          <th style="width:80px">ภาษีที่หัก (฿)</th>
+        </tr></thead>
+        <tbody>${txns.map((t,i)=>`<tr>
+          <td style="text-align:center">${i+1}</td>
+          <td>${esc(t.vendor||t.note||'—')}</td>
+          <td style="text-align:center">${esc(t.vendor_taxid||'—')}</td>
+          <td style="text-align:center">${t.txn_date||t.date||'—'}</td>
+          <td style="text-align:center">${isPnd3?'ม.40':'ม.40(8)'}</td>
+          <td style="text-align:right">${fmt(t.amount)}</td>
+          <td style="text-align:center">${t.wht_rate||3}%</td>
+          <td style="text-align:right;font-weight:700">${fmt(t.wht_amount)}</td>
+        </tr>`).join('')||`<tr><td colspan="8" style="text-align:center;color:#888">ไม่มีรายการ</td></tr>`}
+        </tbody>
+        <tfoot><tr>
+          <td colspan="5" style="text-align:right">รวมทั้งสิ้น</td>
+          <td style="text-align:right">${fmt(totalBase)}</td>
+          <td></td>
+          <td style="text-align:right">${fmt(totalWHT)}</td>
+        </tr></tfoot>
+      </table>
+      <p style="font-size:9pt;color:#555;margin-top:8px">* ภ.ง.ด.3 = จ่ายให้บุคคลธรรมดา · ภ.ง.ด.53 = จ่ายให้นิติบุคคล</p>
+      <div class="footer">เอกสารนี้ออกโดย LINE @BILLDEE ตัวช่วยงานบัญชีของทุกคน</div>
+      </body></html>`;
+      const w=window.open('','_blank','width=900,height=700');
+      if(w){w.document.write(html);w.document.close();}
+      else toast('กรุณาอนุญาต pop-up เพื่อพิมพ์เอกสาร');
+    });
 }
 
 // ── P&L DASHBOARD ────────────────────────────────────────────
@@ -4053,6 +4173,123 @@ function showPlanUpgradePopup(plan){
     <button onclick="document.getElementById('upgrade-popup').remove();closeOv('s-pay')" style="width:100%;background:#0b6b73;color:#fff;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer">🚀 เริ่มใช้งานเลย!</button>
   </div>`;
   document.body.appendChild(el);
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+function openSettings(){
+  const theme=localStorage.getItem('bd_theme')||'auto';
+  ['light','dark','auto'].forEach(t=>{
+    const el=$(`set-${t}-chk`);
+    if(el)el.textContent=theme===t?'✓':'';
+  });
+  // Notification toggle
+  const notif=localStorage.getItem('bd_notif')!=='false';
+  const cb=$('set-notif');
+  const track=$('set-notif-track');
+  const thumb=$('set-notif-thumb');
+  if(cb)cb.checked=notif;
+  if(track)track.style.background=notif?'var(--t500)':'#ccc';
+  if(thumb)thumb.style.left=notif?'21px':'3px';
+  // User info
+  si('set-uname',S.biz?.name||S.uid||'ผู้ใช้');
+  const planName={basic:'Basic ฿109/เดือน',smart:'Smart ฿499/เดือน',pro:'Pro ฿1,190/เดือน'}[S.biz?.plan||'basic']||'Basic';
+  si('set-plan-lbl',planName);
+  openOv('s-settings');
+}
+
+function setTheme(t){
+  localStorage.setItem('bd_theme',t);
+  applyTheme(t);
+  ['light','dark','auto'].forEach(k=>{
+    const el=$(`set-${k}-chk`);
+    if(el)el.textContent=k===t?'✓':'';
+  });
+  toast(t==='light'?'ธีมสว่าง':t==='dark'?'ธีมมืด':'ตามระบบ');
+}
+
+function applyTheme(t){
+  const preferDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const dark=(t==='dark')||(t==='auto'&&preferDark);
+  document.documentElement.classList.toggle('dark',dark);
+}
+
+function saveNotifSetting(val){
+  localStorage.setItem('bd_notif',val?'true':'false');
+  const track=$('set-notif-track');
+  const thumb=$('set-notif-thumb');
+  if(track)track.style.background=val?'var(--t500)':'#ccc';
+  if(thumb)thumb.style.left=val?'21px':'3px';
+  toast(val?'เปิดการแจ้งเตือน LINE แล้ว':'ปิดการแจ้งเตือน LINE แล้ว');
+}
+
+function confirmLogout(){
+  if(confirm('ออกจากระบบ?')){
+    liff.logout();
+    location.reload();
+  }
+}
+
+// ── PIT PDF EXPORT ────────────────────────────────────────────
+function exportPITPDF(){
+  const year=S.pitYear||'2567';
+  const biz=S.biz||{};
+  const gross=pitTotalIncome();
+  const expDed=pitTotalExpDed();
+  const afterExp=gross-expDed;
+  const allowTotal=pitTotalAllow(gross,afterExp);
+  const netIncome=Math.max(0,afterExp-allowTotal);
+  const{tax,brackets}=calcPIT(netIncome);
+  const totalWHT=S.pitIncomes.reduce((s,r)=>s+(parseFloat(r.wht)||0),0);
+  const diff=tax-totalWHT;const owing=diff>0;
+  const fmt=n=>(n||0).toLocaleString('th-TH',{minimumFractionDigits:2});
+
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>ภ.ง.ด.90/91 ปีภาษี ${year}</title>
+  <style>
+    body{font-family:'Sarabun',sans-serif;font-size:11pt;margin:20px;color:#000;max-width:700px}
+    h2{text-align:center;font-size:15pt}
+    .meta{margin-bottom:4px;font-size:10.5pt}
+    table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10.5pt}
+    th,td{border:1px solid #000;padding:5px 8px}
+    th{background:#f0f0f0;text-align:center}
+    .total{background:#e8f4ff;font-weight:800}
+    .net{background:#0e9aa7;color:#fff;font-size:13pt;font-weight:900;text-align:center;padding:10px}
+    @media print{button{display:none}}
+    .footer{margin-top:20px;font-size:9pt;color:#888;text-align:center;border-top:1px solid #ccc;padding-top:8px}
+  </style></head><body>
+  <button onclick="window.print()" style="float:right;padding:7px 16px;font-size:11pt;cursor:pointer">🖨 พิมพ์</button>
+  <h2>ภ.ง.ด.${parseInt(year)<2568?'91':'90'} — สรุปภาษีเงินได้บุคคลธรรมดา</h2>
+  <div class="meta">ปีภาษี <strong>${year}</strong> (${parseInt(year)+543-543} พ.ศ.)</div>
+  <div class="meta">ชื่อผู้เสียภาษี: <strong>${esc(biz.name||S.uid||'—')}</strong></div>
+  ${biz.tax_id?`<div class="meta">เลขประจำตัวผู้เสียภาษี: <strong>${esc(biz.tax_id)}</strong></div>`:''}
+  <table>
+    <thead><tr><th>รายการ</th><th style="width:140px;text-align:right">จำนวนเงิน (฿)</th></tr></thead>
+    <tbody>
+      <tr><td>รายได้รวมทุกประเภท</td><td style="text-align:right">${fmt(gross)}</td></tr>
+      <tr><td style="color:#555">หักค่าใช้จ่าย</td><td style="text-align:right;color:#555">−${fmt(expDed)}</td></tr>
+      <tr class="total"><td>เงินได้หลังหักค่าใช้จ่าย</td><td style="text-align:right">${fmt(afterExp)}</td></tr>
+      <tr><td style="color:#555">หักลดหย่อนรวม</td><td style="text-align:right;color:#555">−${fmt(allowTotal)}</td></tr>
+      <tr class="total"><td>เงินได้สุทธิ</td><td style="text-align:right">${fmt(netIncome)}</td></tr>
+    </tbody>
+  </table>
+  ${brackets.length?`<table><thead><tr><th>ช่วงรายได้</th><th>อัตรา</th><th style="text-align:right">ภาษี (฿)</th></tr></thead><tbody>${brackets.map(b=>`<tr><td>${b.label}</td><td style="text-align:center">${b.rate}</td><td style="text-align:right">${fmt(b.tax)}</td></tr>`).join('')}</tbody></table>`:''}
+  <table>
+    <tbody>
+      <tr><td>ภาษีที่ต้องชำระทั้งปี</td><td style="text-align:right;font-weight:700">${fmt(tax)}</td></tr>
+      <tr><td style="color:#555">ภาษีที่ถูกหัก ณ ที่จ่ายตลอดปี (WHT)</td><td style="text-align:right;color:#555">−${fmt(totalWHT)}</td></tr>
+    </tbody>
+  </table>
+  <div class="net" style="background:${owing?'#e25563':'#16a06f'}">
+    ${owing?'ต้องจ่ายภาษีเพิ่ม':'ได้รับเงินคืนภาษี'} ฿${fmt(Math.abs(diff))}
+  </div>
+  <p style="font-size:9.5pt;color:#666;margin-top:10px">* กรุณายื่นแบบ ภ.ง.ด.90/91 ที่กรมสรรพากรหรือผ่าน efiling.rd.go.th ภายใน 31 มีนาคม ของปีถัดไป</p>
+  <div class="footer">เอกสารนี้ออกโดย LINE @BILLDEE ตัวช่วยงานบัญชีของทุกคน</div>
+  </body></html>`;
+  si('pdf-content',`<div class="doc-pdf-wrap"><p style="text-align:center;padding:20px;color:var(--i3)">กำลังเปิดหน้าต่างพิมพ์…</p></div>`);
+  sh('pdf-wrap');
+  const w=window.open('','_blank','width=800,height=700');
+  if(w){w.document.write(html);w.document.close();}
+  else{toast('กรุณาอนุญาต pop-up เพื่อพิมพ์เอกสาร');}
 }
 
 // ── PAYROLL ───────────────────────────────────────────────────
