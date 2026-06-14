@@ -148,13 +148,12 @@ export default async function handler(req, res) {
     }
   }
 
-  // All models failed — return unverified for manual review
+  // All models failed — reject, don't send to manual review
   return res.status(200).json({
     verified: false,
+    rejected: true,
     confidence: 'none',
-    reason: 'ไม่สามารถอ่านสลิปได้ — รอทีมงานตรวจสอบ',
+    reason: `ไม่สามารถอ่านสลิปได้ — กรุณาถ่ายภาพสลิปใหม่ให้ชัดขึ้น (${lastError})`,
     error: lastError,
-    key_set: !!apiKey,
-    key_prefix: apiKey ? apiKey.slice(0, 8) : 'MISSING',
   });
 }
